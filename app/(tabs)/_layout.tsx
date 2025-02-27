@@ -1,43 +1,47 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
-
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: '#000000',
+        },
+        headerTintColor: '#fff',
+        tabBarStyle: {
+          backgroundColor: '#000000',
+          borderTopColor: '#333333',
+        },
+        tabBarActiveTintColor: '#fff',
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Record',
+          tabBarIcon: ({ color }) => <MaterialIcons name="mic" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="meetings"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Meetings',
+          tabBarIcon: ({ color }) => <MaterialIcons name="list" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="actions"
+        options={{
+          title: 'Actions',
+          tabBarIcon: ({ color }) => <MaterialIcons name="check-circle" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="archived"
+        options={{
+          title: 'Archives',
+          tabBarIcon: ({ color }) => <MaterialIcons name="archive" size={24} color={color} />,
         }}
       />
     </Tabs>
