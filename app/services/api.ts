@@ -59,6 +59,8 @@ api.interceptors.response.use(
   }
 );
 
+export type ActionStatus = 'pending' | 'in_progress' | 'completed';
+
 export interface Meeting {
   id: string;
   title: string;
@@ -79,9 +81,10 @@ export interface Action {
   meetingId: string;
   dueDate: string;
   priority: 'High' | 'Medium' | 'Low';
-  status: 'pending' | 'completed';
+  status: ActionStatus;
   notes?: string;
   archived?: boolean;
+  hasBeenOpened?: boolean;
 }
 
 export interface ArchivedMeeting {
@@ -208,76 +211,102 @@ export const actionsApi = {
   // Get all actions
   getAll: async (filters?: { status?: 'pending' | 'completed' }): Promise<Action[]> => {
     try {
-      const response = await api.get('/actions', { 
-        params: filters 
-      });
+      const params = new URLSearchParams();
+      if (filters?.status) {
+        params.append('status', filters.status);
+      }
+      
+      const response = await api.get(`/actions?${params.toString()}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to load actions:', error);
-      return [];
+      console.error('Failed to get actions:', error);
+      throw new Error('Failed to get actions');
     }
   },
 
   // Get actions by meeting
   getByMeeting: async (meetingId: string): Promise<Action[]> => {
     try {
-      const response = await api.get<Action[]>(`/actions/meeting/${meetingId}`);
+      const response = await api.get(`/actions/meeting/${meetingId}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to load actions:', error);
-      return [];
+      console.error(`Failed to get actions for meeting ${meetingId}:`, error);
+      throw new Error('Failed to get actions for meeting');
+    }
+  },
+
+  // Get action by ID
+  getById: async (id: string): Promise<Action | null> => {
+    try {
+      const response = await api.get(`/actions/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to get action ${id}:`, error);
+      return null;
     }
   },
 
   // Create new action
   create: async (action: Omit<Action, 'id'>): Promise<Action> => {
     try {
-      const response = await api.post<Action>('/actions', action);
+      const response = await api.post('/actions', action);
       return response.data;
     } catch (error) {
       console.error('Failed to create action:', error);
-      throw error;
+      throw new Error('Failed to create action');
     }
   },
 
   // Update action
   update: async (id: string, updates: Partial<Action>): Promise<Action> => {
     try {
-      const response = await api.put<Action>(`/actions/${id}`, updates);
+      const response = await api.put(`/actions/${id}`, updates);
       return response.data;
     } catch (error) {
-      console.error('Failed to update action:', error);
-      throw error;
+      console.error(`Failed to update action ${id}:`, error);
+      throw new Error('Failed to update action');
+    }
+  },
+
+  // Save only notes and title (special update method)
+  saveNotes: async (id: string, updates: { title: string; notes: string }): Promise<Action> => {
+    try {
+      const response = await api.put(`/actions/${id}/notes`, updates);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to save notes for action ${id}:`, error);
+      throw new Error('Failed to save action notes');
     }
   },
 
   // Update action status
   updateStatus: async (id: string, status: Action['status']): Promise<void> => {
     try {
-      await api.patch(`/actions/${id}`, { status });
+      await api.patch(`/actions/${id}/status`, { status });
     } catch (error) {
-      console.error('Failed to update action status:', error);
-      throw error;
+      console.error(`Failed to update status for action ${id}:`, error);
+      throw new Error('Failed to update action status');
     }
   },
 
   // Delete action
-  delete: async (id: string) => {
+  delete: async (id: string): Promise<void> => {
     try {
       await api.delete(`/actions/${id}`);
     } catch (error) {
-      console.error('Failed to delete action:', error);
+      console.error(`Failed to delete action ${id}:`, error);
+      throw new Error('Failed to delete action');
     }
   },
 
   // Batch update actions
   batchUpdate: async (ids: string[], updates: Partial<Action>): Promise<Action[]> => {
     try {
-      const response = await api.post<Action[]>('/actions/batch', { ids, updates });
+      const response = await api.put('/actions/batch', { ids, updates });
       return response.data;
     } catch (error) {
       console.error('Failed to batch update actions:', error);
-      throw error;
+      throw new Error('Failed to batch update actions');
     }
   },
 };

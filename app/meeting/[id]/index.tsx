@@ -100,13 +100,13 @@ export default function MeetingDetails() {
           prevActions.map(a => (a.id === updatedAction.id ? updatedAction : a))
         );
       } else {
-        // Create new action with completed status (not in pending)
+        // Create new action with pending status (not completed) for consistency
         const newAction = await actionsApi.create({
           meetingId: id as string,
           title: actionData.title || '',
           dueDate: actionData.dueDate || new Date().toISOString(),
           priority: actionData.priority || 'Medium',
-          status: 'completed', // Start as completed so it's not in pending
+          status: 'pending', // Start as pending (not completed) for consistency
           notes: actionData.notes,
         });
         setActions(prevActions => [...prevActions, newAction]);
@@ -319,52 +319,69 @@ export default function MeetingDetails() {
                     Processing transcript for action items...
                   </Text>
                 )}
-                {displayedActions.map((action) => (
-                  <View key={action.id} style={styles.actionItem}>
-                    <View style={styles.actionItemLeft}>
+                {displayedActions.map((action) => {
+                  // Split title into heading and content if it contains double newlines
+                  let heading = action.title;
+                  let content = '';
+                  
+                  if (action.title.includes('\n\n')) {
+                    const parts = action.title.split('\n\n');
+                    heading = parts[0];
+                    content = parts.slice(1).join('\n\n');
+                  }
+                  
+                  return (
+                    <View key={action.id} style={styles.actionItem}>
+                      <View style={styles.actionItemLeft}>
+                        <TouchableOpacity
+                          onPress={() => handleToggleStatus(action)}
+                          style={styles.checkbox}
+                        >
+                          <MaterialIcons
+                            name={
+                              action.status === 'pending' ? 'hourglass-empty' :
+                              'check-box-outline-blank'
+                            }
+                            size={24}
+                            color={
+                              action.status === 'pending' ? '#FF9500' :
+                              '#999999'
+                            }
+                          />
+                        </TouchableOpacity>
+                        <View style={styles.actionItemContent}>
+                          <Text style={styles.actionItemTitle}>
+                            {heading}
+                          </Text>
+                          {content ? (
+                            <Text style={styles.actionItemText}>
+                              {content}
+                            </Text>
+                          ) : null}
+                          <Text style={styles.actionItemDueDate}>
+                            Due: {new Date(action.dueDate).toLocaleDateString()}
+                          </Text>
+                          {action.status === 'pending' && (
+                            <Text style={styles.pendingText}>
+                              Task in progress
+                            </Text>
+                          )}
+                        </View>
+                      </View>
                       <TouchableOpacity
-                        onPress={() => handleToggleStatus(action)}
-                        style={styles.checkbox}
+                        onPress={() => handleEditAction(action)}
+                        style={styles.editButton}
+                        disabled={action.status === 'completed'}
                       >
-                        <MaterialIcons
-                          name={
-                            action.status === 'pending' ? 'hourglass-empty' :
-                            'check-box-outline-blank'
-                          }
-                          size={24}
-                          color={
-                            action.status === 'pending' ? '#FF9500' :
-                            '#999999'
-                          }
+                        <MaterialIcons 
+                          name="edit" 
+                          size={20} 
+                          color={action.status === 'completed' ? '#666666' : '#999999'} 
                         />
                       </TouchableOpacity>
-                      <View style={styles.actionItemContent}>
-                        <Text style={styles.actionItemTitle}>
-                          {action.title}
-                        </Text>
-                        <Text style={styles.actionItemDueDate}>
-                          Due: {new Date(action.dueDate).toLocaleDateString()}
-                        </Text>
-                        {action.status === 'pending' && (
-                          <Text style={styles.pendingText}>
-                            Task in progress
-                          </Text>
-                        )}
-                      </View>
                     </View>
-                    <TouchableOpacity
-                      onPress={() => handleEditAction(action)}
-                      style={styles.editButton}
-                      disabled={action.status === 'completed'}
-                    >
-                      <MaterialIcons 
-                        name="edit" 
-                        size={20} 
-                        color={action.status === 'completed' ? '#666666' : '#999999'} 
-                      />
-                    </TouchableOpacity>
-                  </View>
-                ))}
+                  );
+                })}
                 {hasMoreActions && !showAllActions && (
                   <TouchableOpacity
                     onPress={() => setShowAllActions(true)}
@@ -480,15 +497,24 @@ const styles = StyleSheet.create({
   },
   actionItemContent: {
     flex: 1,
+    marginLeft: 12,
   },
   actionItemTitle: {
     fontSize: 16,
     color: '#FFFFFF',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  actionItemText: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    marginTop: 4,
     marginBottom: 4,
   },
   actionItemDueDate: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#999999',
+    marginBottom: 4,
   },
   completedText: {
     fontSize: 12,

@@ -37,3 +37,5 @@ yarn-error.*
 
 app-example
 backend/.env
+
+uploads/audio

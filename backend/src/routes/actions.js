@@ -1,6 +1,6 @@
 const express = require('express');
 const asyncHandler = require('express-async-handler');
-const { Action, Meeting } = require('../models');
+const { Action, Meeting, sequelize } = require('../models');
 
 const router = express.Router();
 
@@ -69,18 +69,96 @@ router.post('/', asyncHandler(async (req, res) => {
 // Update action
 router.put('/:id', asyncHandler(async (req, res) => {
   try {
-    const [updated] = await Action.update(req.body, {
-      where: { id: req.params.id }
+    console.log('Update request received:', {
+      id: req.params.id,
+      body: req.body
     });
-    if (updated) {
-      const updatedAction = await Action.findByPk(req.params.id);
-      res.json(updatedAction);
-    } else {
+    
+    // First get the current action
+    const currentAction = await Action.findByPk(req.params.id);
+    if (!currentAction) {
       res.status(404).json({ message: 'Action not found' });
+      return;
     }
+
+    console.log('Current action state:', currentAction.toJSON());
+
+    // Only update fields that are explicitly provided
+    const updates = {};
+    if ('title' in req.body) updates.title = req.body.title;
+    if ('notes' in req.body) updates.notes = req.body.notes;
+    if ('hasBeenOpened' in req.body) updates.hasBeenOpened = req.body.hasBeenOpened;
+    
+    // Don't include status in updates unless explicitly provided
+    if ('status' in req.body) {
+      updates.status = req.body.status;
+    }
+    
+    console.log('Applying updates:', updates);
+    
+    // Use raw update to bypass any model defaults
+    const updateFields = Object.keys(updates).map(field => `"${field}" = :${field}`).join(', ');
+    await sequelize.query(
+      `UPDATE "Actions" SET ${updateFields} WHERE id = :id`,
+      {
+        replacements: {
+          ...updates,
+          id: req.params.id
+        },
+        type: sequelize.QueryTypes.UPDATE
+      }
+    );
+    
+    // Get the updated action
+    const updatedAction = await Action.findByPk(req.params.id);
+    console.log('Final action state:', updatedAction.toJSON());
+    res.json(updatedAction);
   } catch (error) {
     console.error('Failed to update action:', error);
     res.status(500).json({ message: 'Failed to update action' });
+  }
+}));
+
+// Save notes for an action
+router.put('/:id/notes', asyncHandler(async (req, res) => {
+  try {
+    const { title, notes } = req.body;
+    
+    console.log('Saving notes:', {
+      id: req.params.id,
+      title,
+      notes
+    });
+
+    // Use direct SQL to update only title and notes, and force status to stay pending
+    await sequelize.query(
+      `UPDATE "Actions" 
+       SET title = :title, 
+           notes = :notes, 
+           status = 'pending',
+           "updatedAt" = NOW()
+       WHERE id = :id`,
+      {
+        replacements: {
+          id: req.params.id,
+          title,
+          notes
+        },
+        type: sequelize.QueryTypes.UPDATE
+      }
+    );
+    
+    // Get updated action
+    const action = await Action.findByPk(req.params.id);
+    if (!action) {
+      return res.status(404).json({ message: 'Action not found' });
+    }
+    
+    console.log('Updated action:', action.toJSON());
+    res.json(action);
+  } catch (error) {
+    console.error('Failed to save notes:', error);
+    res.status(500).json({ message: 'Failed to save notes' });
   }
 }));
 

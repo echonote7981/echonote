@@ -1,5 +1,7 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform, Dimensions } from 'react-native';
 import theme from './theme';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const actionStyles = StyleSheet.create({
   container: {
@@ -106,6 +108,110 @@ const actionStyles = StyleSheet.create({
   },
   checkboxChecked: {
     backgroundColor: theme.colors.primary,
+  },
+  // Action Details Modal styles
+  modalContainer: {
+    flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-start',
+  },
+  modalContent: {
+    backgroundColor: theme.colors.background,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    height: '90%',
+    marginTop: Platform.OS === 'ios' ? 40 : 0,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    flex: 1,
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalScrollContent: {
+    flex: 1,
+  },
+  modalFormContent: {
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 80,
+  },
+  notesSection: {
+    marginBottom: 20,
+  },
+  notesLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    marginBottom: 8,
+  },
+  notesInput: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 8,
+    padding: 12,
+    color: theme.colors.textPrimary,
+    fontSize: 16,
+    minHeight: 120,
+    maxHeight: 300, // Limit maximum height while still allowing scrolling
+    textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  notesText: {
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    padding: 12,
+  },
+  modalButtonContainer: {
+    marginTop: 20,
+    gap: 12,
+  },
+  modalBottomButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    gap: 12,
+  },
+  modalButton: {
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  secondaryButton: {
+    backgroundColor: theme.colors.secondary,
+  },
+  archiveButton: {
+    backgroundColor: theme.colors.warning,
+  },
+  completeButton: {
+    backgroundColor: theme.colors.success,
+  },
+  cancelButton: {
+    backgroundColor: theme.colors.error,
+  },
+  saveButton: {
+    backgroundColor: theme.colors.primary,
+  },
+  modalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

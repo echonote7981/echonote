@@ -32,14 +32,42 @@ module.exports = (sequelize) => {
     status: {
       type: DataTypes.ENUM('pending', 'completed'),
       defaultValue: 'pending',
-      allowNull: false
+      allowNull: false,
+      set(value) {
+        console.log('Setting status:', { 
+          oldValue: this.getDataValue('status'),
+          newValue: value,
+          stack: new Error().stack 
+        });
+        this.setDataValue('status', value);
+      }
     },
     notes: {
       type: DataTypes.TEXT,
       allowNull: true
+    },
+    hasBeenOpened: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false
     }
   }, {
-    timestamps: true
+    timestamps: true,
+    hooks: {
+      beforeUpdate: (instance, options) => {
+        console.log('Before Update:', {
+          changing: instance.changed(),
+          attributes: instance.get(),
+          options
+        });
+      },
+      afterUpdate: (instance, options) => {
+        console.log('After Update:', {
+          attributes: instance.get(),
+          options
+        });
+      }
+    }
   });
 
   Action.associate = (models) => {

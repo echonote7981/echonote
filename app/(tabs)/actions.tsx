@@ -16,7 +16,7 @@ import { actionsApi, Action } from '../services/api';
 import theme from '../styles/theme';
 import ActionDetailsModal from '../components/ActionDetailsModal';
 
-type ActionStatus = 'pending' | 'completed';
+type ActionStatus = 'pending' | 'in_progress' | 'completed';
 
 export default function ActionsScreen() {
   const [actions, setActions] = useState<Action[]>([]);
@@ -31,7 +31,7 @@ export default function ActionsScreen() {
       setLoading(true);
       const data = await actionsApi.getAll();
       const filteredData = data.filter(action => 
-        action.status === filter && !action.archived
+        (action.status === filter || (filter === 'pending' && action.status === 'in_progress')) && !action.archived
       );
       
       const sortedData = [...filteredData].sort((a, b) => {
@@ -53,31 +53,89 @@ export default function ActionsScreen() {
     setRefreshing(false);
   };
 
-  useEffect(() => {
-    loadActions();
-  }, [filter, sortOrder]);
+  const handleActionPress = async (action: Action) => {
+    try {
+      // First verify the action exists
+      console.log('Verifying action exists:', action.id);
+      const existingAction = await actionsApi.getById(action.id);
+      
+      if (!existingAction) {
+        console.error('Action not found:', action.id);
+        Alert.alert('Error', 'Action not found. Please refresh the list.');
+        return;
+      }
 
-  const handleActionPress = (action: Action) => {
-    setSelectedAction(action);
+      // Set selected action to open the modal
+      setSelectedAction(existingAction);
+
+      // Then update hasBeenOpened if needed
+      if (!existingAction.hasBeenOpened) {
+        await actionsApi.update(action.id, {
+          hasBeenOpened: true
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update action:', error);
+      Alert.alert('Error', 'Failed to update action status.');
+    }
   };
 
-  const handleSaveNotes = async (actionId: string, notes: string) => {
+  const handleModalClose = () => {
+    setSelectedAction(null);
+  };
+
+  const handleSaveNotes = async (actionId: string, updates: { title: string; notes: string }) => {
     try {
-      await actionsApi.update(actionId, { notes });
+      const action = actions.find(a => a.id === actionId);
+      if (!action) {
+        console.error('Action not found for save:', actionId);
+        return;
+      }
+
+      console.log('Saving notes:', {
+        actionId,
+        updates,
+        currentAction: action
+      });
+      
+      // Use the new saveNotes method that only updates title and notes
+      await actionsApi.saveNotes(actionId, updates);
       await loadActions();
+      setSelectedAction(null);
     } catch (error) {
-      Alert.alert('Error', 'Failed to save notes. Please try again.');
+      console.error('Failed to save:', error);
+      Alert.alert('Error', 'Failed to save changes. Please try again.');
     }
   };
 
   const handleCompleteTask = async (actionId: string) => {
     try {
-      await actionsApi.update(actionId, { 
-        status: 'completed',
-        notes: 'Task Completed'
+      const action = actions.find(a => a.id === actionId);
+      if (!action) {
+        console.error('Action not found for complete:', actionId);
+        return;
+      }
+
+      if (action.status === 'completed') {
+        console.log('Action already completed:', actionId);
+        return;
+      }
+
+      console.log('Completing action:', {
+        id: actionId,
+        currentStatus: action.status,
+        updates: {
+          status: 'completed'
+        }
+      });
+
+      await actionsApi.update(actionId, {
+        status: 'completed'
       });
       await loadActions();
+      setSelectedAction(null);
     } catch (error) {
+      console.error('Failed to complete task:', error);
       Alert.alert('Error', 'Failed to complete task. Please try again.');
     }
   };
@@ -109,37 +167,25 @@ export default function ActionsScreen() {
 
   const renderActionItem = ({ item }: { item: Action }) => (
     <TouchableOpacity
-      style={[
-        styles.actionItem,
-        item.status === 'completed' && styles.completedItem
-      ]}
+      style={styles.actionItem}
       onPress={() => handleActionPress(item)}
     >
       <View style={styles.actionContent}>
         <View style={styles.actionHeader}>
-          <Text style={styles.actionTitle}>{item.title}</Text>
-          <TouchableOpacity 
-            style={styles.checkButton}
-            onPress={() => {
-              if (item.status === 'pending') {
-                handleCompleteTask(item.id);
-              } else {
-                handleMoveToPending(item.id);
-              }
-            }}
-          >
-            <MaterialIcons
-              name={item.status === 'completed' ? 'check-circle' : 'radio-button-unchecked'}
-              size={24}
-              color={item.status === 'completed' ? theme.colors.success : theme.colors.primary}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.actionDetails}>
-          <Text style={styles.actionDate}>
+          <Text style={[
+            styles.statusText,
+            item.status === 'in_progress' && styles.inProgressText,
+            item.status === 'completed' && styles.completedText,
+          ]}>
+            {item.status === 'pending' && !item.hasBeenOpened ? 'Pending' : 
+             item.status === 'in_progress' ? 'In Progress' : 
+             'Completed'}
+          </Text>
+          <Text style={styles.actionDueDate}>
             Due: {new Date(item.dueDate).toLocaleDateString()}
           </Text>
         </View>
+        <Text style={styles.actionTitle}>{item.title}</Text>
         {item.notes && (
           <Text style={styles.actionNotes} numberOfLines={2}>
             {item.notes}
@@ -148,6 +194,10 @@ export default function ActionsScreen() {
       </View>
     </TouchableOpacity>
   );
+
+  useEffect(() => {
+    loadActions();
+  }, [filter, sortOrder]);
 
   if (loading && !refreshing) {
     return (
@@ -209,11 +259,9 @@ export default function ActionsScreen() {
         <ActionDetailsModal
           visible={true}
           action={selectedAction}
-          onClose={() => setSelectedAction(null)}
+          onClose={handleModalClose}
           onSave={handleSaveNotes}
           onComplete={handleCompleteTask}
-          onMoveToPending={handleMoveToPending}
-          onArchive={handleArchive}
         />
       )}
     </SafeAreaView>
@@ -289,9 +337,6 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  completedItem: {
-    opacity: 0.8,
-  },
   actionContent: {
     padding: 16,
   },
@@ -305,15 +350,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.textPrimary,
-    flex: 1,
+    marginBottom: 4,
   },
-  checkButton: {
-    padding: 4,
-  },
-  actionDetails: {
-    marginBottom: 8,
-  },
-  actionDate: {
+  actionDueDate: {
     fontSize: 14,
     color: theme.colors.textSecondary,
   },
@@ -321,6 +360,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textSecondary,
     marginTop: 4,
+  },
+  statusText: {
+    fontSize: 14,
+    color: theme.colors.secondary,
+    fontWeight: '500',
+  },
+  inProgressText: {
+    color: theme.colors.warning,
+  },
+  completedText: {
+    color: theme.colors.success,
   },
   emptyContainer: {
     alignItems: 'center',

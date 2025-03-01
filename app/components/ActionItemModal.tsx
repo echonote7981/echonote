@@ -28,6 +28,7 @@ interface ActionItemModalProps {
 
 function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: ActionItemModalProps) {
   const [title, setTitle] = useState(initialAction?.title || '');
+  const [text, setText] = useState(''); // New field for action item main text
   const [notes, setNotes] = useState(initialAction?.notes || '');
   const [priority, setPriority] = useState<Action['priority']>(initialAction?.priority || 'Medium');
   const [status, setStatus] = useState<Action['status']>(initialAction?.status || 'pending');
@@ -41,18 +42,37 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
       : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
   );
 
-  // Reset state when modal is closed or when initialAction changes
+  // Split title into short title and text on initial load
   useEffect(() => {
-    if (visible) {
-      setTitle(initialAction?.title || '');
-      setNotes(initialAction?.notes || '');
-      setPriority(initialAction?.priority || 'Medium');
-      setStatus(initialAction?.status || 'pending');
-      const newDueDate = initialAction?.dueDate 
+    if (visible && initialAction?.title) {
+      // If title contains double newlines, split into title and text
+      const titleContent = initialAction.title.trim();
+      if (titleContent.includes('\n\n')) {
+        const [shortTitle, ...textParts] = titleContent.split('\n\n');
+        setTitle(shortTitle);
+        setText(textParts.join('\n\n'));
+      } else {
+        setTitle(titleContent);
+        setText('');
+      }
+      setNotes(initialAction.notes || '');
+      setPriority(initialAction.priority || 'Medium');
+      setStatus(initialAction.status || 'pending');
+      const newDueDate = initialAction.dueDate 
         ? new Date(initialAction.dueDate) 
         : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       setDueDate(newDueDate);
       setDateInputText(newDueDate.toLocaleDateString());
+    } else if (visible) {
+      // Reset state for new action items
+      setTitle('');
+      setText('');
+      setNotes('');
+      setPriority('Medium');
+      setStatus('pending');
+      const defaultDueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      setDueDate(defaultDueDate);
+      setDateInputText(defaultDueDate.toLocaleDateString());
     }
   }, [visible, initialAction]);
 
@@ -60,6 +80,7 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
     onClose();
     // Reset state when modal is closed
     setTitle('');
+    setText('');
     setNotes('');
     setPriority('Medium');
     setStatus('pending');
@@ -94,15 +115,38 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
     setShowDatePicker(true);
   };
 
+  const handleSendToPending = () => {
+    if (!title.trim()) {
+      Alert.alert('Error', 'Title is required');
+      return;
+    }
+    
+    // Combine title and text for storage
+    const fullTitle = text ? `${title.trim()}\n\n${text.trim()}` : title.trim();
+    
+    onSave({
+      ...initialAction,
+      title: fullTitle,
+      notes: notes.trim(),
+      priority,
+      status: 'pending', // Always set to pending when sending to actions
+      dueDate: dueDate.toISOString(),
+    });
+    onClose();
+  };
+
   const handleSave = () => {
     if (!title.trim()) {
       Alert.alert('Error', 'Title is required');
       return;
     }
-
+    
+    // Combine title and text for storage
+    const fullTitle = text ? `${title.trim()}\n\n${text.trim()}` : title.trim();
+    
     onSave({
       ...initialAction,
-      title: title.trim(),
+      title: fullTitle,
       notes: notes.trim(),
       priority,
       status,
@@ -147,18 +191,15 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
                     {initialAction && (
                       <TouchableOpacity
                         style={styles.statusButton}
-                        onPress={() => setStatus(status === 'pending' ? 'completed' : 'pending')}
+                        onPress={handleSendToPending}
                       >
                         <MaterialIcons
-                          name={status === 'pending' ? 'hourglass-empty' : 'check-box-outline-blank'}
+                          name="hourglass-empty"
                           size={20}
-                          color={status === 'pending' ? '#FF9500' : '#999999'}
+                          color="#FF9500"
                         />
-                        <Text style={[
-                          styles.statusButtonText,
-                          status === 'pending' && styles.statusButtonTextPending
-                        ]}>
-                          {status === 'pending' ? 'In Progress' : 'Not Started'}
+                        <Text style={[styles.statusButtonText, styles.statusButtonTextPending]}>
+                          Not Started
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -167,10 +208,11 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
                     style={styles.input}
                     value={title}
                     onChangeText={setTitle}
-                    placeholder="Enter title"
+                    placeholder="Enter short title"
                     placeholderTextColor="#999"
                     autoFocus
                     returnKeyType="next"
+                    maxLength={50} // Limit title to 50 characters
                   />
                 </View>
 
@@ -252,6 +294,19 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
                     themeVariant="dark"
                   />
                 )}
+
+                <Text style={styles.label}>Action Item Details</Text>
+                <TextInput
+                  style={[styles.input, styles.textInput]}
+                  value={text}
+                  onChangeText={setText}
+                  placeholder="Enter detailed description of the action item"
+                  placeholderTextColor="#666666"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  returnKeyType="next"
+                />
 
                 <Text style={styles.label}>Notes</Text>
                 <TextInput
@@ -382,6 +437,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     marginBottom: 16,
+  },
+  textInput: {
+    height: 100,
+    textAlignVertical: 'top',
   },
   notesInput: {
     height: 100,

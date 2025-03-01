@@ -1,18 +1,21 @@
 import { Action } from '../services/api';
 
 const actionTriggerPhrases = [
-  'action item',
-  'todo',
-  'to do',
-  'need to',
-  'needs to',
-  'should',
-  'will',
-  'must',
-  'take action',
-  'follow up',
-  'follow-up',
+  'action item','todo','to do','need to','needs to','should','will','must','take action','follow up',
+  'assign', 'resolve', 'confirm', 'update', 'approve', 'notify', 'implement', 'investigate', 'schedule', 
+  'submit', 'draft', 'organize', 'execute', 'prepare', 'discuss', 'finalize', 'prioritize', 'review', 
+  'verify', 'test', 'implement', 'address', 'reject', 'rework', 'complete', 'close', 'cancel', 'suspend',
+  'evaluate', 'analyze', 'plan', 'coordinate', 'delegate', 'respond', 'clarify', 'review', 'initiate',
+  'revise', 'track', 'set up', 'communicate', 'consolidate', 'verify', 'test', 'collaborate',
+  'investigate', 'resolve', 'prioritize', 'initiate', 'revise', 'track', 'set up', 'communicate',
+  'consolidate', 'verify', 'test', 'collaborate', 'investigate', 'resolve', 'prioritize', 'Confirm',
+  'Troubleshoot', 'Design', 'Schedule', 'Research','Launch', 'Track','Update','Maintain', 'Collect', 
+  'Review', 'Execute', 'Clarify','Adjust', 'Optimize', 'Finalize','Cross-check','Reconcile', 
 ];
+
+
+
+
 
 const transcriptAnalysis = {
   extractActionItems(transcript: string): Partial<Action>[] {

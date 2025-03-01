@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, FlatList, Text, Pressable, RefreshControl, Platform, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal, GestureResponderEvent } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
+import { Link, useRouter, useFocusEffect } from 'expo-router';
 import { meetingsApi, Meeting } from '../services/api';
 import meetingsStyles from '../styles/meetings';
 
@@ -256,7 +256,18 @@ export default function MeetingsScreen() {
     </Pressable>
   );
 
-  // Load meetings when screen comes into focus
+  // Load meetings when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Meetings screen focused - loading meetings');
+      loadMeetings();
+      return () => {
+        // Clean up if needed
+      };
+    }, [])
+  );
+
+  // Initial load - redundant but kept for backward compatibility
   useEffect(() => {
     loadMeetings();
   }, []);
