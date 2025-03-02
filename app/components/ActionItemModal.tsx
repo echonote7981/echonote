@@ -28,7 +28,7 @@ interface ActionItemModalProps {
 
 function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: ActionItemModalProps) {
   const [title, setTitle] = useState(initialAction?.title || '');
-  const [text, setText] = useState(''); // New field for action item main text
+  const [details, setDetails] = useState(initialAction?.details || ''); // Store details separately
   const [notes, setNotes] = useState(initialAction?.notes || '');
   const [priority, setPriority] = useState<Action['priority']>(initialAction?.priority || 'Medium');
   const [status, setStatus] = useState<Action['status']>(initialAction?.status || 'pending');
@@ -42,19 +42,11 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
       : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
   );
 
-  // Split title into short title and text on initial load
+  // Update state when initialAction changes
   useEffect(() => {
-    if (visible && initialAction?.title) {
-      // If title contains double newlines, split into title and text
-      const titleContent = initialAction.title.trim();
-      if (titleContent.includes('\n\n')) {
-        const [shortTitle, ...textParts] = titleContent.split('\n\n');
-        setTitle(shortTitle);
-        setText(textParts.join('\n\n'));
-      } else {
-        setTitle(titleContent);
-        setText('');
-      }
+    if (visible && initialAction) {
+      setTitle(initialAction.title || '');
+      setDetails(initialAction.details || ''); // Load details from initialAction
       setNotes(initialAction.notes || '');
       setPriority(initialAction.priority || 'Medium');
       setStatus(initialAction.status || 'pending');
@@ -66,7 +58,7 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
     } else if (visible) {
       // Reset state for new action items
       setTitle('');
-      setText('');
+      setDetails('');
       setNotes('');
       setPriority('Medium');
       setStatus('pending');
@@ -80,7 +72,7 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
     onClose();
     // Reset state when modal is closed
     setTitle('');
-    setText('');
+    setDetails('');
     setNotes('');
     setPriority('Medium');
     setStatus('pending');
@@ -121,12 +113,10 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
       return;
     }
     
-    // Combine title and text for storage
-    const fullTitle = text ? `${title.trim()}\n\n${text.trim()}` : title.trim();
-    
     onSave({
       ...initialAction,
-      title: fullTitle,
+      title: title.trim(),
+      details: details.trim(), // Include details field
       notes: notes.trim(),
       priority,
       status: 'pending', // Always set to pending when sending to actions
@@ -141,12 +131,10 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
       return;
     }
     
-    // Combine title and text for storage
-    const fullTitle = text ? `${title.trim()}\n\n${text.trim()}` : title.trim();
-    
     onSave({
       ...initialAction,
-      title: fullTitle,
+      title: title.trim(),
+      details: details.trim(), // Include details field
       notes: notes.trim(),
       priority,
       status,
@@ -295,11 +283,11 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
                   />
                 )}
 
-                <Text style={styles.label}>Action Item Details</Text>
+                <Text style={styles.label}>Details</Text>
                 <TextInput
                   style={[styles.input, styles.textInput]}
-                  value={text}
-                  onChangeText={setText}
+                  value={details}
+                  onChangeText={setDetails}
                   placeholder="Enter detailed description of the action item"
                   placeholderTextColor="#666666"
                   multiline
@@ -310,16 +298,15 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
 
                 <Text style={styles.label}>Notes</Text>
                 <TextInput
-                  style={[styles.input, styles.notesInput]}
+                  style={[styles.input, styles.textInput]}
                   value={notes}
                   onChangeText={setNotes}
-                  placeholder="Add notes (optional)"
+                  placeholder="Your thoughts can go here"  
                   placeholderTextColor="#666666"
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
                   returnKeyType="done"
-                  blurOnSubmit={true}
                 />
                 
                 <View style={styles.buttonContainer}>

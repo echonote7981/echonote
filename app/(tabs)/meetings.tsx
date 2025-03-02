@@ -5,6 +5,9 @@ import { Link, useRouter, useFocusEffect } from 'expo-router';
 import { meetingsApi, Meeting } from '../services/api';
 import meetingsStyles from '../styles/meetings';
 
+// Time interval for polling in ms (5 seconds)
+const POLLING_INTERVAL = 5000;
+
 export default function MeetingsScreen() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -16,6 +19,8 @@ export default function MeetingsScreen() {
   const touchStartY = useRef<number>(0);
   const isScrolling = useRef<boolean>(false);
   const router = useRouter();
+  const pollingTimer = useRef<NodeJS.Timeout | null>(null);
+  const isFocused = useRef<boolean>(false);
 
   const loadMeetings = async () => {
     try {
@@ -23,8 +28,10 @@ export default function MeetingsScreen() {
       const data = await meetingsApi.getAll();
       console.log('Meetings loaded:', data);
       setMeetings(data);
+      return data;
     } catch (error) {
       console.error('Failed to load meetings:', error);
+      return [];
     }
   };
 
@@ -97,6 +104,59 @@ export default function MeetingsScreen() {
       Alert.alert('Error', 'Failed to delete meeting');
     }
   };
+
+  const checkMeetingStatus = async (meetingId: string) => {
+    try {
+      const meeting = await meetingsApi.getById(meetingId);
+      if (meeting) {
+        return meeting;
+      }
+    } catch (error) {
+      console.error(`Failed to check status of meeting ${meetingId}:`, error);
+    }
+    return null;
+  };
+
+  const startPollingProcessingMeetings = useCallback(async () => {
+    if (pollingTimer.current) {
+      clearTimeout(pollingTimer.current);
+      pollingTimer.current = null;
+    }
+
+    if (!isFocused.current) return;
+
+    try {
+      const processingMeetings = meetings.filter(meeting => meeting.status === 'processing');
+      
+      if (processingMeetings.length === 0) {
+        console.log('No processing meetings to check');
+        return;
+      }
+      
+      console.log(`Checking status for ${processingMeetings.length} processing meetings`);
+      
+      let updatedAny = false;
+      
+      for (const meeting of processingMeetings) {
+        const updatedMeeting = await checkMeetingStatus(meeting.id);
+        
+        if (updatedMeeting && updatedMeeting.status !== 'processing') {
+          console.log(`Meeting ${meeting.id} status changed from processing to ${updatedMeeting.status}`);
+          updatedAny = true;
+        }
+      }
+      
+      if (updatedAny) {
+        await loadMeetings();
+      }
+    } catch (error) {
+      console.error('Error in polling:', error);
+    } finally {
+      if (isFocused.current) {
+        pollingTimer.current = setTimeout(startPollingProcessingMeetings, POLLING_INTERVAL);
+      }
+    }
+  }, [meetings]);
 
   const renderActionMenu = () => (
     <Modal
@@ -189,16 +249,45 @@ export default function MeetingsScreen() {
     }
   };
 
+  const getStatusText = (status: Meeting['status']) => {
+    switch (status) {
+      case 'processed':
+        return 'Ready';
+      case 'processing':
+        return 'Processing...';
+      case 'failed':
+        return 'Failed';
+      default:
+        return status;
+    }
+  };
+
   const renderStatus = (status: Meeting['status']) => (
     <View style={meetingsStyles.statusContainer}>
       <Text style={[meetingsStyles.meetingStatus, { color: getStatusColor(status) }]}>
-        {status}
+        {getStatusText(status)}
       </Text>
       {status === 'processing' && (
         <ActivityIndicator 
           size="small" 
           color={getStatusColor(status)}
           style={meetingsStyles.statusSpinner}
+        />
+      )}
+      {status === 'processed' && (
+        <MaterialIcons 
+          name="check-circle" 
+          size={16} 
+          color={getStatusColor(status)} 
+          style={meetingsStyles.statusIcon}
+        />
+      )}
+      {status === 'failed' && (
+        <MaterialIcons 
+          name="error" 
+          size={16} 
+          color={getStatusColor(status)} 
+          style={meetingsStyles.statusIcon}
         />
       )}
     </View>
@@ -256,18 +345,35 @@ export default function MeetingsScreen() {
     </Pressable>
   );
 
-  // Load meetings when screen is focused
   useFocusEffect(
     useCallback(() => {
       console.log('Meetings screen focused - loading meetings');
-      loadMeetings();
+      isFocused.current = true;
+      
+      loadMeetings().then(loadedMeetings => {
+        if (loadedMeetings.some(meeting => meeting.status === 'processing')) {
+          startPollingProcessingMeetings();
+        }
+      });
+      
       return () => {
-        // Clean up if needed
+        isFocused.current = false;
+        if (pollingTimer.current) {
+          clearTimeout(pollingTimer.current);
+          pollingTimer.current = null;
+        }
       };
-    }, [])
+    }, [startPollingProcessingMeetings])
   );
 
-  // Initial load - redundant but kept for backward compatibility
+  useEffect(() => {
+    if (isFocused.current && meetings.some(meeting => meeting.status === 'processing')) {
+      if (!pollingTimer.current) {
+        startPollingProcessingMeetings();
+      }
+    }
+  }, [meetings, startPollingProcessingMeetings]);
+
   useEffect(() => {
     loadMeetings();
   }, []);

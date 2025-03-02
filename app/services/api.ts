@@ -83,6 +83,7 @@ export interface Action {
   priority: 'High' | 'Medium' | 'Low';
   status: ActionStatus;
   notes?: string;
+  details?: string;
   archived?: boolean;
   hasBeenOpened?: boolean;
 }

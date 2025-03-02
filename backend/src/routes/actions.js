@@ -52,13 +52,16 @@ router.get('/:id', asyncHandler(async (req, res) => {
     return;
   }
   
+  console.log('Fetched action by ID:', JSON.stringify(action.toJSON(), null, 2));
   res.json(action);
 }));
 
 // Create new action
 router.post('/', asyncHandler(async (req, res) => {
   try {
+    console.log('Creating action with data:', JSON.stringify(req.body, null, 2));
     const action = await Action.create(req.body);
+    console.log('Created action:', JSON.stringify(action.toJSON(), null, 2));
     res.status(201).json(action);
   } catch (error) {
     console.error('Failed to create action:', error);
@@ -87,6 +90,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
     const updates = {};
     if ('title' in req.body) updates.title = req.body.title;
     if ('notes' in req.body) updates.notes = req.body.notes;
+    if ('details' in req.body) updates.details = req.body.details;
     if ('hasBeenOpened' in req.body) updates.hasBeenOpened = req.body.hasBeenOpened;
     
     // Don't include status in updates unless explicitly provided

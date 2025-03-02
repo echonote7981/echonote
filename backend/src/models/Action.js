@@ -42,6 +42,10 @@ module.exports = (sequelize) => {
         this.setDataValue('status', value);
       }
     },
+    details: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
     notes: {
       type: DataTypes.TEXT,
       allowNull: true

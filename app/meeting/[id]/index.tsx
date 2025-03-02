@@ -66,6 +66,7 @@ export default function MeetingDetails() {
             ...action,
             meetingId: id as string,
             title: action.title || '',
+            details: action.details || '',
             priority: action.priority || 'Medium',
             status: 'pending', // Start with empty status
             dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default due date: 1 week
@@ -104,6 +105,7 @@ export default function MeetingDetails() {
         const newAction = await actionsApi.create({
           meetingId: id as string,
           title: actionData.title || '',
+          details: actionData.details || '',
           dueDate: actionData.dueDate || new Date().toISOString(),
           priority: actionData.priority || 'Medium',
           status: 'pending', // Start as pending (not completed) for consistency

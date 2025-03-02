@@ -76,7 +76,10 @@ const meetingStyles = StyleSheet.create({
     gap: 8,
   },
   statusSpinner: {
-    marginLeft: 4,
+    marginLeft: 5,
+  },
+  statusIcon: {
+    marginLeft: 5,
   },
   statusProcessing: {
     backgroundColor: '#4CAF50',
