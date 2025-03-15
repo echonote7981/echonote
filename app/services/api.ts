@@ -59,7 +59,7 @@ api.interceptors.response.use(
   }
 );
 
-export type ActionStatus = 'pending' | 'in_progress' | 'completed';
+export type ActionStatus = 'not_reviewed' | 'pending' | 'in_progress' | 'completed';
 
 export interface Meeting {
   id: string;

@@ -24,6 +24,7 @@ interface ActionDetailsModalProps {
   onClose: () => void;
   onSave?: (actionId: string, updates: { title: string; notes: string }) => Promise<void>;
   onComplete?: (actionId: string) => Promise<void>;
+  onMarkAsReviewed?: (actionId: string) => Promise<void>;
 }
 
 export default function ActionDetailsModal({
@@ -32,12 +33,14 @@ export default function ActionDetailsModal({
   onClose,
   onSave,
   onComplete,
+  onMarkAsReviewed,
 }: ActionDetailsModalProps) {
   const [title, setTitle] = useState(action.title || '');
   const [notes, setNotes] = useState(action.notes || '');
   const scrollViewRef = useRef<ScrollView>(null);
   const notesInputRef = useRef<TextInput>(null);
   const isCompleted = action.status === 'completed';
+  const isNotReviewed = action.status === 'not_reviewed';
 
   const handleKeyboardShow = (event: KeyboardEvent) => {
     // Delay scrolling to ensure the keyboard is fully shown
@@ -82,6 +85,15 @@ export default function ActionDetailsModal({
       onClose();
     } catch (error) {
       Alert.alert('Error', 'Failed to complete task. Please try again.');
+    }
+  };
+
+  const handleMarkAsReviewed = async () => {
+    try {
+      await onMarkAsReviewed?.(action.id);
+      onClose();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update status. Please try again.');
     }
   };
 
@@ -145,6 +157,14 @@ export default function ActionDetailsModal({
 
                   <View style={actionStyles.modalButtonContainer}>
                     <View style={actionStyles.modalBottomButtons}>
+                      {isNotReviewed && (
+                        <TouchableOpacity
+                          style={[actionStyles.modalButton, actionStyles.notStartedButton]}
+                          onPress={handleMarkAsReviewed}
+                        >
+                          <Text style={actionStyles.modalButtonText}>Not Started</Text>
+                        </TouchableOpacity>
+                      )}
                       <TouchableOpacity
                         style={[actionStyles.modalButton, actionStyles.completeButton]}
                         onPress={handleComplete}

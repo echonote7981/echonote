@@ -202,6 +202,9 @@ const actionStyles = StyleSheet.create({
   completeButton: {
     backgroundColor: theme.colors.success,
   },
+  notStartedButton: {
+    backgroundColor: theme.colors.secondary,
+  },
   cancelButton: {
     backgroundColor: theme.colors.error,
   },

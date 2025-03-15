@@ -23,10 +23,11 @@ interface ActionItemModalProps {
   onClose: () => void;
   onSave: (action: Partial<Action>) => void;
   onDelete?: (action: Action) => void;
+  onMarkAsReviewed?: (action: Action) => void;
   initialAction?: Action;
 }
 
-function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: ActionItemModalProps) {
+function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed, initialAction }: ActionItemModalProps) {
   const [title, setTitle] = useState(initialAction?.title || '');
   const [details, setDetails] = useState(initialAction?.details || ''); // Store details separately
   const [notes, setNotes] = useState(initialAction?.notes || '');
@@ -119,7 +120,7 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
       details: details.trim(), // Include details field
       notes: notes.trim(),
       priority,
-      status: 'pending', // Always set to pending when sending to actions
+      status: 'pending', // Explicitly set to pending when sending to actions
       dueDate: dueDate.toISOString(),
     });
     onClose();
@@ -141,6 +142,13 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
       dueDate: dueDate.toISOString(),
     });
     onClose();
+  };
+
+  const handleMarkAsReviewed = () => {
+    if (onMarkAsReviewed && initialAction) {
+      onMarkAsReviewed(initialAction);
+      onClose();
+    }
   };
 
   const priorities: Action['priority'][] = ['High', 'Medium', 'Low'];
@@ -339,6 +347,16 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, initialAction }: 
                   ) : (
                     <View style={styles.buttonSpacer} />
                   )}
+                  {initialAction && initialAction.status === 'not_reviewed' && onMarkAsReviewed ? (
+                    <TouchableOpacity 
+                      style={[styles.button, styles.reviewButton]} 
+                      onPress={handleMarkAsReviewed}
+                    >
+                      <Text style={styles.buttonText}>Mark as Reviewed</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.buttonSpacer} />
+                  )}
                   <TouchableOpacity 
                     style={[styles.button, styles.cancelButton]} 
                     onPress={handleClose}
@@ -460,6 +478,9 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: '#FF453A',
+  },
+  reviewButton: {
+    backgroundColor: '#32D74B',
   },
   buttonText: {
     fontSize: 16,

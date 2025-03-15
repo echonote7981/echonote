@@ -68,7 +68,7 @@ export default function MeetingDetails() {
             title: action.title || '',
             details: action.details || '',
             priority: action.priority || 'Medium',
-            status: 'pending', // Start with empty status
+            status: 'not_reviewed', // Start with empty status
             dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Default due date: 1 week
           })
         )
@@ -101,14 +101,14 @@ export default function MeetingDetails() {
           prevActions.map(a => (a.id === updatedAction.id ? updatedAction : a))
         );
       } else {
-        // Create new action with pending status (not completed) for consistency
+        // Create new action with not_reviewed status to keep it in the same state
         const newAction = await actionsApi.create({
           meetingId: id as string,
           title: actionData.title || '',
           details: actionData.details || '',
           dueDate: actionData.dueDate || new Date().toISOString(),
           priority: actionData.priority || 'Medium',
-          status: 'pending', // Start as pending (not completed) for consistency
+          status: 'not_reviewed', // Changed from 'pending' to 'not_reviewed'
           notes: actionData.notes,
         });
         setActions(prevActions => [...prevActions, newAction]);
@@ -148,6 +148,26 @@ export default function MeetingDetails() {
       }
     } catch (error) {
       console.error('Failed to update action status:', error);
+      Alert.alert('Error', 'Failed to update action status. Please try again.');
+    }
+  };
+
+  const handleMarkAsReviewed = async (actionId: string) => {
+    try {
+      // Update the action status to 'pending' to move it to Actions tab
+      await actionsApi.update(actionId, { status: 'pending' });
+      
+      // Update the local state
+      setActions(prevActions =>
+        prevActions.map(a =>
+          a.id === actionId ? { ...a, status: 'pending' } : a
+        )
+      );
+
+      // Show feedback to user
+      Alert.alert('Success', 'Action item moved to Pending Actions');
+    } catch (error) {
+      console.error('Failed to mark action as reviewed:', error);
       Alert.alert('Error', 'Failed to update action status. Please try again.');
     }
   };
@@ -341,11 +361,13 @@ export default function MeetingDetails() {
                         >
                           <MaterialIcons
                             name={
+                              action.status === 'not_reviewed' ? 'hourglass-empty' :
                               action.status === 'pending' ? 'hourglass-empty' :
                               'check-box-outline-blank'
                             }
                             size={24}
                             color={
+                              action.status === 'not_reviewed' ? '#FF9500' :
                               action.status === 'pending' ? '#FF9500' :
                               '#999999'
                             }
@@ -363,9 +385,9 @@ export default function MeetingDetails() {
                           <Text style={styles.actionItemDueDate}>
                             Due: {new Date(action.dueDate).toLocaleDateString()}
                           </Text>
-                          {action.status === 'pending' && (
+                          {action.status === 'not_reviewed' && (
                             <Text style={styles.pendingText}>
-                              Task in progress
+                              Not Reviewed
                             </Text>
                           )}
                         </View>
@@ -430,6 +452,7 @@ export default function MeetingDetails() {
         }}
         onSave={handleSaveAction}
         onDelete={handleDeleteAction}
+        onMarkAsReviewed={(action) => handleMarkAsReviewed(action.id)}
         initialAction={selectedAction}
       />
     </>

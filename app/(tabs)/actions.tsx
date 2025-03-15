@@ -10,6 +10,7 @@ import {
   Platform,
   SafeAreaView,
   StyleSheet,
+  TextInput,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { actionsApi, Action } from '../services/api';
@@ -25,13 +26,18 @@ export default function ActionsScreen() {
   const [filter, setFilter] = useState<ActionStatus>('pending');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
+  const [searchText, setSearchText] = useState<string>('');
+  const [showSearch, setShowSearch] = useState(false);
 
   const loadActions = async () => {
     try {
       setLoading(true);
       const data = await actionsApi.getAll();
       const filteredData = data.filter(action => 
-        (action.status === filter || (filter === 'pending' && action.status === 'in_progress')) && !action.archived
+        // Only show reviewed actions (not 'not_reviewed') that match the current filter
+        action.status !== 'not_reviewed' && 
+        (action.status === filter || (filter === 'pending' && action.status === 'in_progress')) && 
+        !action.archived
       );
       
       const sortedData = [...filteredData].sort((a, b) => {
@@ -199,13 +205,12 @@ export default function ActionsScreen() {
     loadActions();
   }, [filter, sortOrder]);
 
-  if (loading && !refreshing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-      </View>
-    );
-  }
+  const filteredActions = searchText.trim() === '' 
+    ? actions 
+    : actions.filter(action => 
+        action.title.toLowerCase().includes(searchText.toLowerCase()) || 
+        (action.notes && action.notes.toLowerCase().includes(searchText.toLowerCase()))
+      );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -228,20 +233,49 @@ export default function ActionsScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.sortButton}
-          onPress={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-        >
-          <MaterialIcons
-            name={sortOrder === 'desc' ? 'arrow-downward' : 'arrow-upward'}
-            size={24}
-            color={theme.colors.primary}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setShowSearch(!showSearch)}
+          >
+            <MaterialIcons
+              name="search"
+              size={24}
+              color={theme.colors.primary}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+          >
+            <MaterialIcons
+              name={sortOrder === 'desc' ? 'arrow-downward' : 'arrow-upward'}
+              size={24}
+              color={theme.colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
+      
+      {showSearch && (
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search tasks..."
+            value={searchText}
+            onChangeText={setSearchText}
+            autoFocus
+          />
+          {searchText !== '' && (
+            <TouchableOpacity onPress={() => setSearchText('')} style={styles.clearButton}>
+              <MaterialIcons name="clear" size={20} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       <FlatList
-        data={actions}
+        data={filteredActions}
         renderItem={renderActionItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
@@ -250,7 +284,9 @@ export default function ActionsScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No {filter} actions found</Text>
+            <Text style={styles.emptyText}>
+              {searchText.trim() !== '' ? 'No matching tasks found' : `No ${filter} actions found`}
+            </Text>
           </View>
         }
       />
@@ -314,9 +350,37 @@ const styles = StyleSheet.create({
   activeFilterButtonText: {
     color: theme.colors.onPrimary,
   },
-  sortButton: {
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
     padding: 8,
-    marginLeft: 8,
+    marginLeft: 4,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    color: theme.colors.textPrimary,
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 24,
+    padding: 8,
   },
   listContent: {
     padding: 16,
