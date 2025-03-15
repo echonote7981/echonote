@@ -4,6 +4,45 @@ const { Action, Meeting, sequelize } = require('../models');
 
 const router = express.Router();
 
+// Cleanup pending actions
+router.post('/cleanup', asyncHandler(async (req, res) => {
+  try {
+    const { action, meetingId } = req.body;
+    let whereClause = { status: 'pending' };
+    
+    // If meetingId is provided, only clean up for that meeting
+    if (meetingId) {
+      whereClause.meetingId = meetingId;
+    }
+    
+    let result;
+    switch(action) {
+      case 'delete':
+        result = await Action.destroy({ where: whereClause });
+        break;
+      case 'complete':
+        result = await Action.update(
+          { status: 'completed', completedAt: new Date() },
+          { where: whereClause }
+        );
+        break;
+      case 'archive':
+        result = await Action.update(
+          { archived: true },
+          { where: whereClause }
+        );
+        break;
+      default:
+        return res.status(400).json({ message: 'Invalid action. Use delete, complete, or archive.' });
+    }
+    
+    res.json({ message: `Successfully performed ${action} on ${result} pending action items` });
+  } catch (error) {
+    console.error('Failed to clean up actions:', error);
+    res.status(500).json({ message: 'Failed to clean up actions', error: error.message });
+  }
+}));
+
 // Get all actions
 router.get('/', asyncHandler(async (req, res) => {
   try {
@@ -96,6 +135,14 @@ router.put('/:id', asyncHandler(async (req, res) => {
     // Don't include status in updates unless explicitly provided
     if ('status' in req.body) {
       updates.status = req.body.status;
+      
+      // Set completedAt timestamp when status changes to completed
+      if (req.body.status === 'completed' && currentAction.status !== 'completed') {
+        updates.completedAt = new Date();
+      } else if (req.body.status !== 'completed' && currentAction.status === 'completed') {
+        // Clear completedAt if moving from completed to another status
+        updates.completedAt = null;
+      }
     }
     
     console.log('Applying updates:', updates);

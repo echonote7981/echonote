@@ -30,8 +30,8 @@ module.exports = (sequelize) => {
       allowNull: false
     },
     status: {
-      type: DataTypes.ENUM('pending', 'completed'),
-      defaultValue: 'pending',
+      type: DataTypes.ENUM('not_reviewed', 'pending', 'in_progress', 'completed'),
+      defaultValue: 'not_reviewed',
       allowNull: false,
       set(value) {
         console.log('Setting status:', { 
@@ -54,6 +54,11 @@ module.exports = (sequelize) => {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
       allowNull: false
+    },
+    completedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null
     }
   }, {
     timestamps: true,
