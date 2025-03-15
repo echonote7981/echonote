@@ -121,8 +121,12 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
       notes: notes.trim(),
       priority,
       status: 'pending', // Explicitly set to pending when sending to actions
+      hasBeenOpened: true, // Mark as opened
       dueDate: dueDate.toISOString(),
     });
+    
+    // Show feedback to the user
+    Alert.alert('Success', 'Action item moved to Pending in Actions tab');
     onClose();
   };
 
@@ -195,7 +199,7 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                           color="#FF9500"
                         />
                         <Text style={[styles.statusButtonText, styles.statusButtonTextPending]}>
-                          Not Started
+                          Start Working
                         </Text>
                       </TouchableOpacity>
                     )}

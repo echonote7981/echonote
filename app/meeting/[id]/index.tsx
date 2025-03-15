@@ -87,9 +87,27 @@ export default function MeetingDetails() {
     setActionModalVisible(true);
   };
 
-  const handleEditAction = (action: Action) => {
-    setSelectedAction(action);
-    setActionModalVisible(true);
+  const handleEditAction = async (action: Action) => {
+    try {
+      // If the action is in not_reviewed status, mark it as opened
+      if (action.status === 'not_reviewed' && !action.hasBeenOpened) {
+        // Update hasBeenOpened flag
+        await actionsApi.update(action.id, { hasBeenOpened: true });
+        
+        // Update local state
+        setActions(prevActions =>
+          prevActions.map(a =>
+            a.id === action.id ? { ...a, hasBeenOpened: true } : a
+          )
+        );
+      }
+      
+      // Open the action modal
+      setSelectedAction(action);
+      setActionModalVisible(true);
+    } catch (error) {
+      console.error('Failed to mark action as opened:', error);
+    }
   };
 
   const handleSaveAction = async (actionData: Partial<Action>) => {
@@ -129,22 +147,37 @@ export default function MeetingDetails() {
 
   const handleToggleStatus = async (action: Action) => {
     try {
-      // Only move to pending if currently completed
+      let newStatus = action.status;
+      
+      // Handle different status transitions
       if (action.status === 'completed') {
-        const newStatus = 'pending';
-        
-        // Update the action status
-        await actionsApi.update(action.id, { status: newStatus });
+        // Move from completed back to pending
+        newStatus = 'pending';
+      } else if (action.status === 'not_reviewed') {
+        // Move from not_reviewed to pending (Start Working)
+        newStatus = 'pending';
+      }
+      
+      if (newStatus !== action.status) {
+        // Update the action status and mark as opened
+        await actionsApi.update(action.id, { 
+          status: newStatus,
+          hasBeenOpened: true 
+        });
         
         // Update the local state
         setActions(prevActions =>
           prevActions.map(a =>
-            a.id === action.id ? { ...a, status: newStatus } : a
+            a.id === action.id ? { ...a, status: newStatus, hasBeenOpened: true } : a
           )
         );
-
-        // Show feedback to user
-        Alert.alert('Success', 'Action item moved to Pending Actions');
+        
+        // Show feedback when moving from not_reviewed to pending
+        if (action.status === 'not_reviewed' && newStatus === 'pending') {
+          Alert.alert('Success', 'Action item moved to Pending in Actions tab');
+        } else {
+          Alert.alert('Success', 'Action item moved to Pending Actions');
+        }
       }
     } catch (error) {
       console.error('Failed to update action status:', error);
@@ -357,7 +390,7 @@ export default function MeetingDetails() {
                       <View style={styles.actionItemLeft}>
                         <TouchableOpacity
                           onPress={() => handleToggleStatus(action)}
-                          style={styles.checkbox}
+                          style={[styles.checkbox, action.status === 'not_reviewed' && styles.notReviewedCheckbox]}
                         >
                           <MaterialIcons
                             name={
@@ -372,6 +405,9 @@ export default function MeetingDetails() {
                               '#999999'
                             }
                           />
+                          {action.status === 'not_reviewed' && (
+                            <Text style={styles.startWorkingText}>Start Working</Text>
+                          )}
                         </TouchableOpacity>
                         <View style={styles.actionItemContent}>
                           <Text style={styles.actionItemTitle}>
@@ -519,6 +555,20 @@ const styles = StyleSheet.create({
   },
   checkbox: {
     marginRight: 12,
+  },
+  notReviewedCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 149, 0, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  startWorkingText: {
+    color: '#FF9500',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   actionItemContent: {
     flex: 1,
