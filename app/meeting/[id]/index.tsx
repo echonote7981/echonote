@@ -118,21 +118,30 @@ export default function MeetingDetails() {
         setActions(prevActions =>
           prevActions.map(a => (a.id === updatedAction.id ? updatedAction : a))
         );
+        // Close modal after updating an existing action
+        setActionModalVisible(false);
       } else {
-        // Create new action with not_reviewed status to keep it in the same state
+        // Create new action with the status as specified in the modal
         const newAction = await actionsApi.create({
           meetingId: id as string,
           title: actionData.title || '',
           details: actionData.details || '',
           dueDate: actionData.dueDate || new Date().toISOString(),
           priority: actionData.priority || 'Medium',
-          status: 'not_reviewed', // Changed from 'pending' to 'not_reviewed'
+          status: actionData.status || 'not_reviewed',
           notes: actionData.notes,
         });
+        
+        // Update the action list with the new action
         setActions(prevActions => [...prevActions, newAction]);
+        
+        // Update the selectedAction to the newly created one
+        // This allows us to keep the modal open with the correct data
+        setSelectedAction(newAction);
       }
     } catch (error) {
       console.error('Failed to save action:', error);
+      Alert.alert('Error', 'Failed to save action item. Please try again.');
     }
   };
 
@@ -198,7 +207,7 @@ export default function MeetingDetails() {
       );
 
       // Show feedback to user
-      Alert.alert('Success', 'Action item moved to Pending Actions');
+      Alert.alert('Success', 'Action item is now In Process');
     } catch (error) {
       console.error('Failed to mark action as reviewed:', error);
       Alert.alert('Error', 'Failed to update action status. Please try again.');
@@ -389,24 +398,34 @@ export default function MeetingDetails() {
                     <View key={action.id} style={styles.actionItem}>
                       <View style={styles.actionItemLeft}>
                         <TouchableOpacity
-                          onPress={() => handleToggleStatus(action)}
-                          style={[styles.checkbox, action.status === 'not_reviewed' && styles.notReviewedCheckbox]}
+                          onPress={() => action.status !== 'completed' && handleToggleStatus(action)}
+                          style={[
+                            styles.checkbox, 
+                            action.status === 'not_reviewed' && styles.notReviewedCheckbox,
+                            action.status === 'completed' && styles.completedCheckbox
+                          ]}
+                          disabled={action.status === 'completed'}
                         >
                           <MaterialIcons
                             name={
                               action.status === 'not_reviewed' ? 'hourglass-empty' :
                               action.status === 'pending' ? 'hourglass-empty' :
+                              action.status === 'completed' ? 'check-circle' :
                               'check-box-outline-blank'
                             }
                             size={24}
                             color={
                               action.status === 'not_reviewed' ? '#FF9500' :
                               action.status === 'pending' ? '#FF9500' :
+                              action.status === 'completed' ? '#32D74B' :
                               '#999999'
                             }
                           />
                           {action.status === 'not_reviewed' && (
                             <Text style={styles.startWorkingText}>Start Working</Text>
+                          )}
+                          {action.status === 'pending' && (
+                            <Text style={styles.startWorkingText}>In Process</Text>
                           )}
                         </TouchableOpacity>
                         <View style={styles.actionItemContent}>
@@ -419,7 +438,11 @@ export default function MeetingDetails() {
                             </Text>
                           ) : null}
                           <Text style={styles.actionItemDueDate}>
-                            Due: {new Date(action.dueDate).toLocaleDateString()}
+                            {action.status === 'completed' && action.completedAt ? (
+                              `Completed on: ${new Date(action.completedAt).toLocaleDateString()}`
+                            ) : (
+                              `Due: ${new Date(action.dueDate).toLocaleDateString()}`
+                            )}
                           </Text>
                           {action.status === 'not_reviewed' && (
                             <Text style={styles.pendingText}>
@@ -502,6 +525,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 16,
+    paddingBottom: 100, // Increased padding for the larger bottom tab bar
   },
   loadingContainer: {
     flex: 1,
@@ -563,6 +587,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
+  },
+  completedCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(50, 215, 75, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    opacity: 0.8,
   },
   startWorkingText: {
     color: '#FF9500',

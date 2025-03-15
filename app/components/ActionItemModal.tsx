@@ -29,7 +29,6 @@ interface ActionItemModalProps {
 
 function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed, initialAction }: ActionItemModalProps) {
   const [title, setTitle] = useState(initialAction?.title || '');
-  const [details, setDetails] = useState(initialAction?.details || ''); // Store details separately
   const [notes, setNotes] = useState(initialAction?.notes || '');
   const [priority, setPriority] = useState<Action['priority']>(initialAction?.priority || 'Medium');
   const [status, setStatus] = useState<Action['status']>(initialAction?.status || 'pending');
@@ -43,29 +42,18 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
       : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
   );
 
-  // Update state when initialAction changes
+  // Reset state when modal is closed or when initialAction changes
   useEffect(() => {
-    if (visible && initialAction) {
-      setTitle(initialAction.title || '');
-      setDetails(initialAction.details || ''); // Load details from initialAction
-      setNotes(initialAction.notes || '');
-      setPriority(initialAction.priority || 'Medium');
-      setStatus(initialAction.status || 'pending');
-      const newDueDate = initialAction.dueDate 
+    if (visible) {
+      setTitle(initialAction?.title || '');
+      setNotes(initialAction?.notes || '');
+      setPriority(initialAction?.priority || 'Medium');
+      setStatus(initialAction?.status || 'not_reviewed');
+      const newDueDate = initialAction?.dueDate 
         ? new Date(initialAction.dueDate) 
         : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       setDueDate(newDueDate);
       setDateInputText(newDueDate.toLocaleDateString());
-    } else if (visible) {
-      // Reset state for new action items
-      setTitle('');
-      setDetails('');
-      setNotes('');
-      setPriority('Medium');
-      setStatus('pending');
-      const defaultDueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      setDueDate(defaultDueDate);
-      setDateInputText(defaultDueDate.toLocaleDateString());
     }
   }, [visible, initialAction]);
 
@@ -73,7 +61,6 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
     onClose();
     // Reset state when modal is closed
     setTitle('');
-    setDetails('');
     setNotes('');
     setPriority('Medium');
     setStatus('pending');
@@ -108,44 +95,26 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
     setShowDatePicker(true);
   };
 
-  const handleSendToPending = () => {
-    if (!title.trim()) {
-      Alert.alert('Error', 'Title is required');
-      return;
-    }
-    
-    onSave({
-      ...initialAction,
-      title: title.trim(),
-      details: details.trim(), // Include details field
-      notes: notes.trim(),
-      priority,
-      status: 'pending', // Explicitly set to pending when sending to actions
-      hasBeenOpened: true, // Mark as opened
-      dueDate: dueDate.toISOString(),
-    });
-    
-    // Show feedback to the user
-    Alert.alert('Success', 'Action item moved to Pending in Actions tab');
-    onClose();
-  };
-
   const handleSave = () => {
     if (!title.trim()) {
       Alert.alert('Error', 'Title is required');
       return;
     }
-    
+
     onSave({
       ...initialAction,
       title: title.trim(),
-      details: details.trim(), // Include details field
       notes: notes.trim(),
       priority,
       status,
       dueDate: dueDate.toISOString(),
     });
-    onClose();
+    
+    // Modal will only close if it's an existing action (edit mode)
+    // For new actions, we'll keep it open and let the parent decide when to close
+    if (initialAction && initialAction.id) {
+      onClose();
+    }
   };
 
   const handleMarkAsReviewed = () => {
@@ -188,31 +157,48 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                 <View style={styles.formGroup}>
                   <View style={styles.titleHeader}>
                     <Text style={styles.label}>Title</Text>
-                    {initialAction && (
-                      <TouchableOpacity
-                        style={styles.statusButton}
-                        onPress={handleSendToPending}
-                      >
-                        <MaterialIcons
-                          name="hourglass-empty"
-                          size={20}
-                          color="#FF9500"
-                        />
-                        <Text style={[styles.statusButtonText, styles.statusButtonTextPending]}>
-                          Start Working
-                        </Text>
-                      </TouchableOpacity>
-                    )}
+                    <TouchableOpacity
+                      style={styles.statusButton}
+                      onPress={() => {
+                        // Toggle between not_reviewed, pending, and completed states
+                        if (status === 'not_reviewed') {
+                          setStatus('pending');
+                        } else if (status === 'pending') {
+                          setStatus('completed');
+                        } else {
+                          setStatus('not_reviewed');
+                        }
+                      }}
+                    >
+                      <MaterialIcons
+                        name={
+                          status === 'not_reviewed' ? 'radio-button-unchecked' :
+                          status === 'pending' ? 'hourglass-empty' : 'check-box'
+                        }
+                        size={20}
+                        color={
+                          status === 'not_reviewed' ? '#999999' :
+                          status === 'pending' ? '#FF9500' : '#0A84FF'
+                        }
+                      />
+                      <Text style={[
+                        styles.statusButtonText,
+                        status === 'not_reviewed' && styles.statusButtonTextNotReviewed,
+                        status === 'pending' && styles.statusButtonTextPending
+                      ]}>
+                        {status === 'not_reviewed' ? 'Not Started' :
+                         status === 'pending' ? 'In Process' : 'Completed'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                   <TextInput
                     style={styles.input}
                     value={title}
                     onChangeText={setTitle}
-                    placeholder="Enter short title"
+                    placeholder="Enter title"
                     placeholderTextColor="#999"
                     autoFocus
                     returnKeyType="next"
-                    maxLength={50} // Limit title to 50 characters
                   />
                 </View>
 
@@ -295,30 +281,18 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                   />
                 )}
 
-                <Text style={styles.label}>Details</Text>
-                <TextInput
-                  style={[styles.input, styles.textInput]}
-                  value={details}
-                  onChangeText={setDetails}
-                  placeholder="Enter detailed description of the action item"
-                  placeholderTextColor="#666666"
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                  returnKeyType="next"
-                />
-
                 <Text style={styles.label}>Notes</Text>
                 <TextInput
-                  style={[styles.input, styles.textInput]}
+                  style={[styles.input, styles.notesInput]}
                   value={notes}
                   onChangeText={setNotes}
-                  placeholder="Your thoughts can go here"  
+                  placeholder="Add notes (optional)"
                   placeholderTextColor="#666666"
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
                   returnKeyType="done"
+                  blurOnSubmit={true}
                 />
                 
                 <View style={styles.buttonContainer}>
@@ -347,16 +321,6 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                       }}
                     >
                       <Text style={styles.buttonText}>Delete</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <View style={styles.buttonSpacer} />
-                  )}
-                  {initialAction && initialAction.status === 'not_reviewed' && onMarkAsReviewed ? (
-                    <TouchableOpacity 
-                      style={[styles.button, styles.reviewButton]} 
-                      onPress={handleMarkAsReviewed}
-                    >
-                      <Text style={styles.buttonText}>Mark as Reviewed</Text>
                     </TouchableOpacity>
                   ) : (
                     <View style={styles.buttonSpacer} />
@@ -447,10 +411,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
   },
-  textInput: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
   notesInput: {
     height: 100,
     textAlignVertical: 'top',
@@ -482,9 +442,6 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: '#FF453A',
-  },
-  reviewButton: {
-    backgroundColor: '#32D74B',
   },
   buttonText: {
     fontSize: 16,
@@ -578,6 +535,9 @@ const styles = StyleSheet.create({
   },
   statusButtonTextPending: {
     color: '#FF9500',
+  },
+  statusButtonTextNotReviewed: {
+    color: '#999999',
   },
 });
 

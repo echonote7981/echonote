@@ -86,6 +86,7 @@ export interface Action {
   details?: string;
   archived?: boolean;
   hasBeenOpened?: boolean;
+  completedAt?: string;
 }
 
 export interface ArchivedMeeting {
@@ -297,6 +298,17 @@ export const actionsApi = {
     } catch (error) {
       console.error(`Failed to delete action ${id}:`, error);
       throw new Error('Failed to delete action');
+    }
+  },
+
+  // Cleanup pending actions - can be used to bulk delete, complete, or archive
+  cleanup: async (action: 'delete' | 'complete' | 'archive', meetingId?: string): Promise<{ message: string }> => {
+    try {
+      const response = await api.post('/actions/cleanup', { action, meetingId });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to cleanup pending actions:', error);
+      throw new Error('Failed to cleanup pending actions');
     }
   },
 

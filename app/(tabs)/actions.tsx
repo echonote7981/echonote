@@ -171,35 +171,53 @@ export default function ActionsScreen() {
     }
   };
 
-  const renderActionItem = ({ item }: { item: Action }) => (
-    <TouchableOpacity
-      style={styles.actionItem}
-      onPress={() => handleActionPress(item)}
-    >
-      <View style={styles.actionContent}>
-        <View style={styles.actionHeader}>
-          <Text style={[
-            styles.statusText,
-            item.status === 'in_progress' && styles.inProgressText,
-            item.status === 'completed' && styles.completedText,
-          ]}>
-            {item.status === 'pending' && !item.hasBeenOpened ? 'Pending' : 
-             item.status === 'in_progress' ? 'In Progress' : 
-             'Completed'}
-          </Text>
-          <Text style={styles.actionDueDate}>
-            Due: {new Date(item.dueDate).toLocaleDateString()}
-          </Text>
+  const renderActionItem = ({ item }: { item: Action }) => {
+    // Split title into heading and content if it contains double newlines
+    // This matches the display format in the Meeting Details page
+    let heading = item.title;
+    let content = '';
+    
+    if (item.title && item.title.includes('\n\n')) {
+      const parts = item.title.split('\n\n');
+      heading = parts[0];
+      content = parts.slice(1).join('\n\n');
+    }
+    
+    return (
+      <TouchableOpacity
+        style={styles.actionItem}
+        onPress={() => handleActionPress(item)}
+      >
+        <View style={styles.actionContent}>
+          <View style={styles.actionHeader}>
+            <Text style={[
+              styles.statusText,
+              item.status === 'in_progress' && styles.inProgressText,
+              item.status === 'completed' && styles.completedText,
+            ]}>
+              {item.status === 'pending' && !item.hasBeenOpened ? 'Pending' : 
+               item.status === 'in_progress' ? 'In Progress' : 
+               'Completed'}
+            </Text>
+            <Text style={styles.actionDueDate}>
+              Due: {new Date(item.dueDate).toLocaleDateString()}
+            </Text>
+          </View>
+          <Text style={styles.actionTitle}>{heading}</Text>
+          {content ? (
+            <Text style={styles.actionText}>
+              {content}
+            </Text>
+          ) : null}
+          {item.notes && (
+            <Text style={styles.actionNotes} numberOfLines={2}>
+              {item.notes}
+            </Text>
+          )}
         </View>
-        <Text style={styles.actionTitle}>{item.title}</Text>
-        {item.notes && (
-          <Text style={styles.actionNotes} numberOfLines={2}>
-            {item.notes}
-          </Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  }
 
   useEffect(() => {
     loadActions();
@@ -305,6 +323,12 @@ export default function ActionsScreen() {
 }
 
 const styles = StyleSheet.create({
+  actionText: {
+    color: '#EEEEEE',
+    fontSize: 14,
+    marginBottom: 6,
+    lineHeight: 20,
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
