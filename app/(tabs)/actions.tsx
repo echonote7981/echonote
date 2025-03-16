@@ -545,6 +545,8 @@ export default function ActionsScreen() {
             onDelete={selectedAction ? (action) => {
               setShowDeleteConfirm(true);
             } : undefined}
+            onCompleteTask={handleCompleteTask}
+            isPendingFolder={true}
           />
         ) : (
           <ActionDetailsModal

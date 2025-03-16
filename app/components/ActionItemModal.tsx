@@ -25,10 +25,12 @@ interface ActionItemModalProps {
   onSave: (action: Partial<Action>) => void;
   onDelete?: (action: Action) => void;
   onMarkAsReviewed?: (action: Action) => void;
+  onCompleteTask?: (actionId: string) => void;
   initialAction?: Action;
+  isPendingFolder?: boolean;
 }
 
-function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed, initialAction }: ActionItemModalProps) {
+function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed, onCompleteTask, initialAction, isPendingFolder = false }: ActionItemModalProps) {
   const [title, setTitle] = useState(initialAction?.title || '');
   const [notes, setNotes] = useState(initialAction?.notes || '');
   const [details, setDetails] = useState(initialAction?.details || '');
@@ -396,7 +398,33 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                 />
                 
                 <View style={styles.buttonRow}>
-                  {initialAction && onDelete && (
+                  {initialAction && isPendingFolder && onCompleteTask && (
+                    <TouchableOpacity 
+                      style={[styles.button, styles.completeButton]} 
+                      onPress={() => {
+                        Alert.alert(
+                          'Complete Task',
+                          'Mark this action item as completed?',
+                          [
+                            {
+                              text: 'Cancel',
+                              style: 'cancel',
+                            },
+                            {
+                              text: 'Complete',
+                              onPress: () => {
+                                onCompleteTask(initialAction.id);
+                                handleClose();
+                              },
+                            },
+                          ],
+                        );
+                      }}
+                    >
+                      <Text style={styles.buttonText}>Complete Task</Text>
+                    </TouchableOpacity>
+                  )}
+                  {initialAction && onDelete && !isPendingFolder && (
                     <TouchableOpacity 
                       style={[styles.button, styles.deleteButton]} 
                       onPress={() => {
@@ -562,6 +590,9 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: '#FF453A',
+  },
+  completeButton: {
+    backgroundColor: '#30D158',
   },
   buttonText: {
     fontSize: 16,
