@@ -171,7 +171,7 @@ export default function ActionDetailsModal({
                           isCompleted && actionStyles.completedText
                         ]}>
                           {isNotReviewed ? 'Not Started' : 
-                           isPending ? 'In Process' : 'Completed'}
+                           isPending ? 'In Progress' : 'Completed'}
                         </Text>
                       </View>
                     </View>

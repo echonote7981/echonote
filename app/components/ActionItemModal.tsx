@@ -140,11 +140,11 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
       // Display the proper status based on our business logic
       let statusText = 'Not Started';
       if (status === 'pending' && initialAction?.hasBeenOpened) {
-        statusText = 'In Process';
+        statusText = 'In Progress';
       } else if (status === 'pending' && !initialAction?.hasBeenOpened) {
         statusText = 'Pending';
       } else if (status === 'in_progress') {
-        statusText = 'In Process';
+        statusText = 'In Progress';
       } else if (status === 'completed') {
         statusText = 'Completed';
       }
@@ -273,7 +273,7 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                           status === 'pending' && styles.statusButtonTextPending
                         ]}>
                           {status === 'not_reviewed' ? 'Not Started' :
-                           status === 'pending' ? 'In Process' : 'Completed'}
+                           status === 'pending' ? 'In Progress' : 'Completed'}
                         </Text>
                       </TouchableOpacity>
                     </View>

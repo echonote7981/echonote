@@ -207,7 +207,7 @@ export default function MeetingDetails() {
       );
 
       // Show feedback to user
-      Alert.alert('Success', 'Action item is now In Process');
+      Alert.alert('Success', 'Action item is now In Progress');
     } catch (error) {
       console.error('Failed to mark action as reviewed:', error);
       Alert.alert('Error', 'Failed to update action status. Please try again.');
@@ -425,7 +425,7 @@ export default function MeetingDetails() {
                             <Text style={styles.startWorkingText}>Start Working</Text>
                           )}
                           {action.status === 'pending' && (
-                            <Text style={styles.startWorkingText}>In Process</Text>
+                            <Text style={styles.startWorkingText}>In Progress</Text>
                           )}
                         </TouchableOpacity>
                         <View style={styles.actionItemContent}>

@@ -187,7 +187,7 @@ export default function ArchivedScreen() {
       statusColor = '#4CAF50'; // Green
     } else if (displayItem.status === 'pending') {
       if (displayItem.hasBeenOpened) {
-        statusText = 'In Process'; // Correctly handle pending+opened as In Process
+        statusText = 'In Progress'; // Correctly handle pending+opened as In Progress
         statusColor = '#2196F3'; // Blue
       } else {
         statusText = 'Not Started';

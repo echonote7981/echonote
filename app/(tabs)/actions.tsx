@@ -331,7 +331,7 @@ export default function ActionsScreen() {
                 item.status === 'completed' && styles.completedText,
               ]}>
                 {item.status === 'pending' && !item.hasBeenOpened ? 'Pending' : 
-                 item.status === 'in_progress' || (item.status === 'pending' && item.hasBeenOpened) ? 'In Process' : 
+                 item.status === 'in_progress' || (item.status === 'pending' && item.hasBeenOpened) ? 'In Progress' : 
                  item.status === 'completed' ? 'Completed' : 'Not Started'}
               </Text>
               
