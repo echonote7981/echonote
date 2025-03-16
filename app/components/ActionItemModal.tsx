@@ -196,12 +196,14 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                     </TouchableOpacity>
                   </View>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, styles.titleInput]}
                     value={title}
                     onChangeText={setTitle}
                     placeholder="Enter title"
                     placeholderTextColor="#999"
                     autoFocus
+                    multiline
+                    numberOfLines={2}
                     returnKeyType="next"
                   />
                 </View>
@@ -434,6 +436,10 @@ const styles = StyleSheet.create({
   },
   detailsInput: {
     height: 120,
+    textAlignVertical: 'top',
+  },
+  titleInput: {
+    minHeight: 40,
     textAlignVertical: 'top',
   },
   buttonContainer: {

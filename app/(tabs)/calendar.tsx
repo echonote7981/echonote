@@ -8,6 +8,7 @@ import calendarStyles from '../styles/calendar';
 import theme from '../styles/theme';
 import { actionsApi, Action } from '../services/api';
 import ActionDetailsModal from '../components/ActionDetailsModal';
+import ActionItemModal from '../components/ActionItemModal';
 
 
 
@@ -214,10 +215,20 @@ export default function CalendarScreen() {
           >
             <View style={calendarStyles.modalContainer}>
               <View style={calendarStyles.modalContent}>
-                <ActionDetailsModal
+                <ActionItemModal
                   visible={true}
-                  action={selectedAction}
+                  initialAction={selectedAction}
                   onClose={handleCloseModal}
+                  onSave={(updatedAction) => {
+                    // Reload actions after save to reflect any changes
+                    handleCloseModal();
+                    loadActions();
+                  }}
+                  onDelete={(action) => {
+                    // Handle deletion if needed
+                    handleCloseModal();
+                    loadActions();
+                  }}
                 />
                 <TouchableOpacity 
                   style={calendarStyles.backToCalendarLink}

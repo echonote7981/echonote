@@ -19,6 +19,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { actionsApi, Action, ActionStatus } from '../services/api';
 import theme from '../styles/theme';
 import ActionDetailsModal from '../components/ActionDetailsModal';
+import ActionItemModal from '../components/ActionItemModal';
 import { useRouter } from 'expo-router';
 
 export default function ActionsScreen() {
@@ -323,15 +324,28 @@ export default function ActionsScreen() {
       >
         <View style={styles.actionContent}>
           <View style={styles.actionHeader}>
-            <Text style={[
-              styles.statusText,
-              (item.status === 'in_progress' || (item.status === 'pending' && item.hasBeenOpened)) && styles.inProgressText,
-              item.status === 'completed' && styles.completedText,
-            ]}>
-              {item.status === 'pending' && !item.hasBeenOpened ? 'Pending' : 
-               item.status === 'in_progress' || (item.status === 'pending' && item.hasBeenOpened) ? 'In Process' : 
-               item.status === 'completed' ? 'Completed' : 'Not Started'}
-            </Text>
+            <View style={styles.statusContainer}>
+              <Text style={[
+                styles.statusText,
+                (item.status === 'in_progress' || (item.status === 'pending' && item.hasBeenOpened)) && styles.inProgressText,
+                item.status === 'completed' && styles.completedText,
+              ]}>
+                {item.status === 'pending' && !item.hasBeenOpened ? 'Pending' : 
+                 item.status === 'in_progress' || (item.status === 'pending' && item.hasBeenOpened) ? 'In Process' : 
+                 item.status === 'completed' ? 'Completed' : 'Not Started'}
+              </Text>
+              
+              {filter === 'pending' && (
+                <View style={[
+                  styles.priorityFlag,
+                  item.priority === 'High' && styles.highPriorityFlag,
+                  item.priority === 'Medium' && styles.mediumPriorityFlag,
+                  item.priority === 'Low' && styles.lowPriorityFlag,
+                ]}>
+                  <Text style={styles.priorityText}>{item.priority}</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.actionDueDate}>
               Due: {new Date(item.dueDate).toLocaleDateString()}
             </Text>
@@ -516,14 +530,32 @@ export default function ActionsScreen() {
       />
 
       {selectedAction && !showActionMenu && !showDeleteConfirm && (
-        <ActionDetailsModal
-          visible={true}
-          action={selectedAction}
-          onClose={handleModalClose}
-          onSave={handleSaveNotes}
-          onComplete={handleCompleteTask}
-          onReopen={handleReopenTask}
-        />
+        filter === 'pending' ? (
+          <ActionItemModal
+            visible={true}
+            initialAction={selectedAction}
+            onClose={handleModalClose}
+            onSave={(updatedAction) => {
+              // Map the data structure from ActionItemModal to what handleSaveNotes expects
+              handleSaveNotes(selectedAction.id, {
+                title: updatedAction.title || '',
+                notes: updatedAction.notes || ''
+              });
+            }}
+            onDelete={selectedAction ? (action) => {
+              setShowDeleteConfirm(true);
+            } : undefined}
+          />
+        ) : (
+          <ActionDetailsModal
+            visible={true}
+            action={selectedAction}
+            onClose={handleModalClose}
+            onSave={handleSaveNotes}
+            onComplete={handleCompleteTask}
+            onReopen={handleReopenTask}
+          />
+        )
       )}
       
       {/* Render modals */}
@@ -539,6 +571,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 6,
     lineHeight: 20,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  priorityFlag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  highPriorityFlag: {
+    backgroundColor: '#FF453A',
+  },
+  mediumPriorityFlag: {
+    backgroundColor: '#FFD60A',
+  },
+  lowPriorityFlag: {
+    backgroundColor: '#32D74B',
+  },
+  priorityText: {
+    color: '#000000',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   container: {
     flex: 1,
