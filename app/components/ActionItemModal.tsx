@@ -13,6 +13,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { Action } from '../services/api';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -128,6 +129,72 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
     }
   };
 
+  // Handle sharing action item via email
+  const shareViaEmail = async () => {
+    try {
+      // Format the action item details for the email body
+      const formattedDueDate = dueDate.toLocaleDateString();
+      
+      // Display the proper status based on our business logic
+      let statusText = 'Not Started';
+      if (status === 'pending' && initialAction?.hasBeenOpened) {
+        statusText = 'In Process';
+      } else if (status === 'pending' && !initialAction?.hasBeenOpened) {
+        statusText = 'Pending';
+      } else if (status === 'in_progress') {
+        statusText = 'In Process';
+      } else if (status === 'completed') {
+        statusText = 'Completed';
+      }
+      
+      const emailSubject = `Action Item: ${title}`;
+      
+      // Build email body with all the action item details
+      let emailBody = `Action Item: ${title}\n\n`;
+      emailBody += `Status: ${statusText}\n`;
+      emailBody += `Priority: ${priority}\n`;
+      emailBody += `Due Date: ${formattedDueDate}\n\n`;
+      
+      if (details.trim()) {
+        emailBody += `Details:\n${details}\n\n`;
+      }
+      
+      if (notes.trim()) {
+        emailBody += `Notes:\n${notes}\n\n`;
+      }
+      
+      emailBody += `\n\nSent from EchoNotes`;
+      
+      // Encode the email content for the mailto URL
+      const encodedSubject = encodeURIComponent(emailSubject);
+      const encodedBody = encodeURIComponent(emailBody);
+      
+      // Create the mailto URL
+      const mailtoUrl = `mailto:?subject=${encodedSubject}&body=${encodedBody}`;
+      
+      // Check if the device can handle the mailto URL
+      const canOpen = await Linking.canOpenURL(mailtoUrl);
+      
+      if (canOpen) {
+        // Open the device's email client
+        await Linking.openURL(mailtoUrl);
+      } else {
+        Alert.alert(
+          'Error',
+          'No email client found on your device.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error sharing via email:', error);
+      Alert.alert(
+        'Error',
+        'Failed to open email client. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const priorities: Action['priority'][] = ['High', 'Medium', 'Low'];
 
   return (
@@ -161,39 +228,53 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                 <View style={styles.formGroup}>
                   <View style={styles.titleHeader}>
                     <Text style={styles.label}>Title</Text>
-                    <TouchableOpacity
-                      style={styles.statusButton}
-                      onPress={() => {
-                        // Toggle between not_reviewed, pending, and completed states
-                        if (status === 'not_reviewed') {
-                          setStatus('pending');
-                        } else if (status === 'pending') {
-                          setStatus('completed');
-                        } else {
-                          setStatus('not_reviewed');
-                        }
-                      }}
-                    >
-                      <MaterialIcons
-                        name={
-                          status === 'not_reviewed' ? 'radio-button-unchecked' :
-                          status === 'pending' ? 'hourglass-empty' : 'check-box'
-                        }
-                        size={20}
-                        color={
-                          status === 'not_reviewed' ? '#999999' :
-                          status === 'pending' ? '#FF9500' : '#0A84FF'
-                        }
-                      />
-                      <Text style={[
-                        styles.statusButtonText,
-                        status === 'not_reviewed' && styles.statusButtonTextNotReviewed,
-                        status === 'pending' && styles.statusButtonTextPending
-                      ]}>
-                        {status === 'not_reviewed' ? 'Not Started' :
-                         status === 'pending' ? 'In Process' : 'Completed'}
-                      </Text>
-                    </TouchableOpacity>
+                    <View style={styles.headerControls}>
+                      <TouchableOpacity
+                        style={styles.emailLink}
+                        onPress={shareViaEmail}
+                      >
+                        <MaterialIcons
+                          name="email"
+                          size={18}
+                          color="#34B7F1"
+                        />
+                        <Text style={styles.emailLinkText}>Email</Text>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        style={styles.statusButton}
+                        onPress={() => {
+                          // Toggle between not_reviewed, pending, and completed states
+                          if (status === 'not_reviewed') {
+                            setStatus('pending');
+                          } else if (status === 'pending') {
+                            setStatus('completed');
+                          } else {
+                            setStatus('not_reviewed');
+                          }
+                        }}
+                      >
+                        <MaterialIcons
+                          name={
+                            status === 'not_reviewed' ? 'radio-button-unchecked' :
+                            status === 'pending' ? 'hourglass-empty' : 'check-box'
+                          }
+                          size={20}
+                          color={
+                            status === 'not_reviewed' ? '#999999' :
+                            status === 'pending' ? '#FF9500' : '#0A84FF'
+                          }
+                        />
+                        <Text style={[
+                          styles.statusButtonText,
+                          status === 'not_reviewed' && styles.statusButtonTextNotReviewed,
+                          status === 'pending' && styles.statusButtonTextPending
+                        ]}>
+                          {status === 'not_reviewed' ? 'Not Started' :
+                           status === 'pending' ? 'In Process' : 'Completed'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                   <TextInput
                     style={[styles.input, styles.titleInput]}
@@ -314,8 +395,8 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                   blurOnSubmit={true}
                 />
                 
-                <View style={styles.buttonContainer}>
-                  {initialAction && onDelete ? (
+                <View style={styles.buttonRow}>
+                  {initialAction && onDelete && (
                     <TouchableOpacity 
                       style={[styles.button, styles.deleteButton]} 
                       onPress={() => {
@@ -341,8 +422,6 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                     >
                       <Text style={styles.buttonText}>Delete</Text>
                     </TouchableOpacity>
-                  ) : (
-                    <View style={styles.buttonSpacer} />
                   )}
                   <TouchableOpacity 
                     style={[styles.button, styles.cancelButton]} 
@@ -442,22 +521,6 @@ const styles = StyleSheet.create({
     minHeight: 40,
     textAlignVertical: 'top',
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 16,
-    marginTop: 0,
-    borderTopWidth: 0,
-    gap: 12,
-  },
-  button: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    minWidth: 100,
-    alignItems: 'center',
-  },
   cancelButton: {
     backgroundColor: '#2C2C2E',
   },
@@ -466,6 +529,36 @@ const styles = StyleSheet.create({
   },
   saveButtonDisabled: {
     opacity: 0.5,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 20,
+  },
+  button: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    marginHorizontal: 5,
+  },
+  emailLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  emailLinkText: {
+    color: '#34B7F1',
+    marginLeft: 5,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  headerControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   deleteButton: {
     backgroundColor: '#FF453A',
