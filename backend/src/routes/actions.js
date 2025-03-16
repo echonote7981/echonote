@@ -47,14 +47,27 @@ router.post('/cleanup', asyncHandler(async (req, res) => {
 router.get('/', asyncHandler(async (req, res) => {
   try {
     const where = {};
+    
+    // Filter by status if provided
     if (req.query.status) {
       where.status = req.query.status;
     }
+    
+    // Filter by archived status if explicitly provided
+    if (req.query.archived !== undefined) {
+      // Convert string query parameter to boolean
+      where.archived = req.query.archived === 'true';
+      console.log(`Filtering actions by archived=${where.archived}`);
+    }
+    
+    console.log('Fetching actions with where clause:', JSON.stringify(where));
 
     const actions = await Action.findAll({
       where,
       order: [['dueDate', 'ASC']]
     });
+    
+    console.log(`Found ${actions.length} actions matching criteria`);
     res.json(actions);
   } catch (error) {
     console.error('Failed to fetch actions:', error);
@@ -131,6 +144,19 @@ router.put('/:id', asyncHandler(async (req, res) => {
     if ('notes' in req.body) updates.notes = req.body.notes;
     if ('details' in req.body) updates.details = req.body.details;
     if ('hasBeenOpened' in req.body) updates.hasBeenOpened = req.body.hasBeenOpened;
+    
+    // Handle archived flag explicitly
+    if ('archived' in req.body) {
+      console.log(`🏁 Setting archived flag to: ${req.body.archived}`);
+      updates.archived = req.body.archived;
+      
+      // If we're archiving an item, also mark it as completed if it isn't already
+      if (req.body.archived === true && currentAction.status !== 'completed') {
+        updates.status = 'completed';
+        updates.completedAt = new Date();
+        console.log('🔄 Auto-completing action as part of archiving');
+      }
+    }
     
     // Don't include status in updates unless explicitly provided
     if ('status' in req.body) {

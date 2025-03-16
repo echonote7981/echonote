@@ -3,6 +3,7 @@ const darkTheme = {
     background: '#121212',
     surface: '#1E1E1E',
     primary: '#BB86FC',
+    primaryLight: '#D4BBFF', // Added for calendar highlights
     primaryVariant: '#3700B3',
     secondary: '#03DAC6',
     error: '#CF6679',

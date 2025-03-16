@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { View } from 'react-native';
 
 export default function TabLayout() {
   return (
@@ -42,6 +43,13 @@ export default function TabLayout() {
         options={{
           title: 'Archives',
           tabBarIcon: ({ color }) => <MaterialIcons name="archive" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: 'Calendar',
+          tabBarIcon: ({ color }) => <MaterialIcons name="calendar-today" size={24} color={color} />,
         }}
       />
     </Tabs>

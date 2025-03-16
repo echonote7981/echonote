@@ -30,6 +30,7 @@ interface ActionItemModalProps {
 function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed, initialAction }: ActionItemModalProps) {
   const [title, setTitle] = useState(initialAction?.title || '');
   const [notes, setNotes] = useState(initialAction?.notes || '');
+  const [details, setDetails] = useState(initialAction?.details || '');
   const [priority, setPriority] = useState<Action['priority']>(initialAction?.priority || 'Medium');
   const [status, setStatus] = useState<Action['status']>(initialAction?.status || 'pending');
   const [dueDate, setDueDate] = useState(
@@ -47,6 +48,7 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
     if (visible) {
       setTitle(initialAction?.title || '');
       setNotes(initialAction?.notes || '');
+      setDetails(initialAction?.details || '');
       setPriority(initialAction?.priority || 'Medium');
       setStatus(initialAction?.status || 'not_reviewed');
       const newDueDate = initialAction?.dueDate 
@@ -62,6 +64,7 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
     // Reset state when modal is closed
     setTitle('');
     setNotes('');
+    setDetails('');
     setPriority('Medium');
     setStatus('pending');
     const defaultDueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -105,6 +108,7 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
       ...initialAction,
       title: title.trim(),
       notes: notes.trim(),
+      details: details.trim(),
       priority,
       status,
       dueDate: dueDate.toISOString(),
@@ -281,6 +285,19 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                   />
                 )}
 
+                <Text style={styles.label}>Action Item Details</Text>
+                <TextInput
+                  style={[styles.input, styles.detailsInput]}
+                  value={details}
+                  onChangeText={setDetails}
+                  placeholder="Enter detailed description of the action item"
+                  placeholderTextColor="#666666"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  returnKeyType="next"
+                />
+
                 <Text style={styles.label}>Notes</Text>
                 <TextInput
                   style={[styles.input, styles.notesInput]}
@@ -413,6 +430,10 @@ const styles = StyleSheet.create({
   },
   notesInput: {
     height: 100,
+    textAlignVertical: 'top',
+  },
+  detailsInput: {
+    height: 120,
     textAlignVertical: 'top',
   },
   buttonContainer: {

@@ -1,23 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  FlatList, 
-  Text, 
-  RefreshControl, 
-  SafeAreaView, 
-  ActivityIndicator, 
-  Pressable, 
-  TouchableOpacity, 
-  StyleSheet,
-  Platform 
-} from 'react-native';
+import { View, FlatList, Text, RefreshControl, SafeAreaView, ActivityIndicator, Pressable, TouchableOpacity, StyleSheet } from 'react-native';
 import { meetingsApi, actionsApi, ArchivedMeeting, Action } from '../services/api';
 import dateUtils from '../utils/dateUtils';
 import timeUtils from '../utils/timeUtils';
 import { MaterialIcons } from '@expo/vector-icons';
 import commonStyles from '../styles/common';
 import theme from '../styles/theme';
-import ActionDetailsModal from '../components/ActionDetailsModal';
 
 type ArchiveTab = 'meetings' | 'tasks';
 
@@ -28,26 +16,69 @@ export default function ArchivedScreen() {
   const [loading, setLoading] = useState(true);
   const [expandedMeeting, setExpandedMeeting] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ArchiveTab>('meetings');
-  const [selectedAction, setSelectedAction] = useState<Action | null>(null);
 
   const loadArchived = async () => {
     try {
       setLoading(true);
-      const [meetingsData, actionsData] = await Promise.all([
-        meetingsApi.getArchived(),
-        actionsApi.getAll()
-      ]);
       
-      console.log('Archived Meetings:', meetingsData);
-      console.log('All Actions:', actionsData);
+      // Load archived meetings
+      try {
+        console.log('📋 Attempting to fetch archived meetings...');
+        const meetingsData = await meetingsApi.getArchived();
+        console.log(`✅ Retrieved ${meetingsData.length} archived meetings`);
+        setArchivedMeetings(meetingsData);
+      } catch (meetingError) {
+        console.error('❌ Error fetching archived meetings:', meetingError);
+        setArchivedMeetings([]);
+      }
       
-      const filteredActions = actionsData.filter(action => action.archived === true);
-      console.log('Filtered Archived Actions:', filteredActions);
-      
-      setArchivedMeetings(meetingsData);
-      setArchivedActions(filteredActions);
+      // Load archived actions with enhanced error handling and logging
+      try {  
+        console.log('📋 Attempting to fetch archived actions...');
+        let archivedActionsData: Action[] = [];
+        
+        try {
+          console.log('📞 Calling actionsApi.getArchived()...');
+          archivedActionsData = await actionsApi.getArchived();
+          console.log(`📄 Raw archived actions data: ${JSON.stringify(archivedActionsData)}`);
+        } catch (error) {
+          console.error('❌ Error in primary archive fetch method:', error);
+          // Try fallback: get all actions and filter
+          try {
+            console.log('🔄 Trying fallback: fetching all actions...');
+            const allActions = await actionsApi.getAll();
+            archivedActionsData = allActions.filter(action => 
+              action.archived === true || 
+              action.status === 'completed' // Show ALL completed tasks regardless of other flags
+            );
+            console.log(`🔢 Fallback found ${archivedActionsData.length} archived actions`);
+          } catch (fallbackError) {
+            console.error('❌ Fallback method also failed:', fallbackError);
+          }
+        }
+        
+        // Remove duplicate entries by using a Map with action IDs as keys
+        const uniqueActionsMap = new Map();
+        archivedActionsData.forEach(action => {
+          uniqueActionsMap.set(action.id, action);
+        });
+        archivedActionsData = Array.from(uniqueActionsMap.values());
+        
+        // Sort actions by completedAt date (newest first)
+        archivedActionsData.sort((a, b) => {
+          const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+          const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+          return dateB - dateA; // Descending order (newest first)
+        });
+        
+        console.log(`✅ Final archived actions count: ${archivedActionsData.length}`);
+        setArchivedActions(archivedActionsData);
+      } catch (actionsError) {
+        console.error('❌ Error processing archived actions:', actionsError);
+        setArchivedActions([]);
+      }
     } catch (error) {
-      console.error('Failed to load archived items:', error);
+      console.error('❌ Failed to load archived items:', error);
     } finally {
       setLoading(false);
     }
@@ -63,18 +94,13 @@ export default function ArchivedScreen() {
     loadArchived();
   }, []);
 
-  const handleMoveToPending = async (actionId: string) => {
-    try {
-      await actionsApi.update(actionId, {
-        status: 'pending',
-        notes: 'Moved back',
-        archived: false
-      });
-      await loadArchived();
-    } catch (error) {
-      console.error('Failed to move task to pending:', error);
-    }
-  };
+  if (loading) {
+    return (
+      <View style={commonStyles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FFFFFF" />
+      </View>
+    );
+  }
 
   const toggleExpand = (id: string) => {
     setExpandedMeeting(expandedMeeting === id ? null : id);
@@ -147,90 +173,99 @@ export default function ArchivedScreen() {
     );
   };
 
-  const renderActionItem = ({ item }: { item: Action }) => (
-    <TouchableOpacity
-      style={styles.actionItem}
-      onPress={() => setSelectedAction(item)}
-    >
-      <View style={styles.actionContent}>
-        <View style={styles.actionHeader}>
-          <Text style={styles.actionTitle}>{item.title}</Text>
-        </View>
-        <View style={styles.actionDetails}>
-          <Text style={styles.actionDate}>
-            Due: {dateUtils.formatDate(new Date(item.dueDate))}
-          </Text>
-        </View>
-        {item.notes && (
-          <Text style={styles.actionNotes} numberOfLines={2}>
-            {item.notes}
-          </Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-
-  if (loading && !refreshing) {
+  // Render an archived action item with appropriate status and details
+  const renderActionItem = ({ item }: { item: Action }) => {
+    // Ensure all items in this list are marked as archived for display purposes
+    const displayItem = item.archived ? item : {...item, archived: true};
+    
+    // Determine status text based on action status and opened state
+    let statusText = 'Unknown';
+    let statusColor = '#999';
+    
+    if (displayItem.status === 'completed') {
+      statusText = 'Completed';
+      statusColor = '#4CAF50'; // Green
+    } else if (displayItem.status === 'pending') {
+      if (displayItem.hasBeenOpened) {
+        statusText = 'In Process'; // Correctly handle pending+opened as In Process
+        statusColor = '#2196F3'; // Blue
+      } else {
+        statusText = 'Not Started';
+        statusColor = '#FFC107'; // Yellow
+      }
+    }
+    
     return (
-      <View style={commonStyles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FFFFFF" />
-      </View>
+      <Pressable style={commonStyles.meetingItem}>
+        <View style={commonStyles.meetingHeader}>
+          <View style={commonStyles.titleContainer}>
+            <Text style={commonStyles.title}>{displayItem.title}</Text>
+            <Text style={commonStyles.date}>
+              {displayItem.completedAt ? dateUtils.formatDate(new Date(displayItem.completedAt)) : 'No completion date'}
+            </Text>
+          </View>
+          <View style={styles.statusBadge}>
+            <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
+          </View>
+        </View>
+        
+        {/* Display notes if available */}
+        {displayItem.notes && (
+          <View style={styles.notesContainer}>
+            <Text style={styles.notesLabel}>Notes:</Text>
+            <Text style={styles.notesText}>{displayItem.notes}</Text>
+          </View>
+        )}
+      </Pressable>
     );
-  }
+  };
 
   return (
     <SafeAreaView style={commonStyles.container}>
-      <View style={styles.header}>
-        <View style={styles.tabButtons}>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'meetings' && styles.activeTabButton]}
-            onPress={() => setActiveTab('meetings')}
-          >
-            <Text style={[styles.tabButtonText, activeTab === 'meetings' && styles.activeTabButtonText]}>
-              Archived Meetings
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabButton, activeTab === 'tasks' && styles.activeTabButton]}
-            onPress={() => setActiveTab('tasks')}
-          >
-            <Text style={[styles.tabButtonText, activeTab === 'tasks' && styles.activeTabButtonText]}>
-              Archived Tasks
-            </Text>
-          </TouchableOpacity>
-        </View>
+      {/* Tab buttons for navigation between archived meetings and actions */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'meetings' && styles.activeTabButton]}
+          onPress={() => setActiveTab('meetings')}
+        >
+          <Text style={[styles.tabButtonText, activeTab === 'meetings' && styles.activeTabText]}>Meetings</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'tasks' && styles.activeTabButton]}
+          onPress={() => setActiveTab('tasks')}
+        >
+          <Text style={[styles.tabButtonText, activeTab === 'tasks' && styles.activeTabText]}>Tasks</Text>
+        </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={activeTab === 'meetings' ? archivedMeetings : archivedActions}
-        renderItem={activeTab === 'meetings' ? renderMeetingItem : renderActionItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={commonStyles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#FFFFFF"
-          />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              No archived {activeTab === 'meetings' ? 'meetings' : 'tasks'} found
-            </Text>
-          </View>
-        }
-      />
-
-      {selectedAction && (
-        <ActionDetailsModal
-          visible={true}
-          action={selectedAction}
-          onClose={() => setSelectedAction(null)}
-          onMoveToPending={handleMoveToPending}
-          onArchive={() => Promise.resolve()} // No-op since already archived
-          onSave={() => Promise.resolve()} // No-op since archived items are read-only
-          onComplete={() => Promise.resolve()} // No-op since archived items are read-only
+      {/* Content based on active tab */}
+      {activeTab === 'meetings' ? (
+        <FlatList
+          data={archivedMeetings}
+          renderItem={renderMeetingItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={commonStyles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#FFFFFF"
+            />
+          }
+        />
+      ) : (
+        <FlatList
+          data={archivedActions}
+          renderItem={renderActionItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={commonStyles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#FFFFFF"
+            />
+          }
         />
       )}
     </SafeAreaView>
@@ -238,88 +273,54 @@ export default function ArchivedScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
+  tabContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  tabButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    flex: 1,
+    justifyContent: 'center',
+    marginVertical: 10,
+    paddingHorizontal: 20,
   },
   tabButton: {
     flex: 1,
+    backgroundColor: '#333',
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+    marginHorizontal: 5,
     alignItems: 'center',
   },
   activeTabButton: {
     backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
   },
   tabButtonText: {
-    fontSize: 14,
+    color: '#fff',
     fontWeight: '500',
-    color: theme.colors.textPrimary,
   },
-  activeTabButtonText: {
-    color: theme.colors.onPrimary,
+  activeTabText: {
+    fontWeight: 'bold',
   },
-  actionItem: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    marginBottom: 12,
-    opacity: 0.8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+  // New styles for archived action items
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    backgroundColor: '#1a1a1a',
   },
-  actionContent: {
-    padding: 16,
+  statusText: {
+    fontSize: 12,
+    fontWeight: 'bold',
   },
-  actionHeader: {
-    marginBottom: 8,
+  notesContainer: {
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
   },
-  actionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
+  notesLabel: {
+    color: '#ccc',
+    fontSize: 12,
+    marginBottom: 4,
   },
-  actionDetails: {
-    marginBottom: 8,
-  },
-  actionDate: {
+  notesText: {
+    color: '#fff',
     fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  actionNotes: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginTop: 4,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: 24,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
   },
 });

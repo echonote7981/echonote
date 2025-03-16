@@ -10,6 +10,87 @@ const actionStyles = StyleSheet.create({
     paddingTop: 40,
     backgroundColor: theme.colors.background,
   },
+  // New styles for ActionDetailsModal
+  titleSection: {
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 8,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
+  },
+  notReviewedText: {
+    color: '#999999',
+  },
+  pendingText: {
+    color: '#FF9500',
+  },
+  completedText: {
+    color: '#32D74B',
+  },
+  titleInput: {
+    backgroundColor: '#333333',
+    color: theme.colors.textPrimary,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  contentText: {
+    color: theme.colors.textSecondary,
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  prioritySection: {
+    marginBottom: 16,
+  },
+  priorityBadgeText: {
+    color: theme.colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  dueDateSection: {
+    marginBottom: 16,
+  },
+  dateDisplay: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#333333',
+    borderRadius: 8,
+    padding: 12,
+  },
+  dateText: {
+    color: theme.colors.textPrimary,
+    fontSize: 16,
+  },
+  modalHeaderTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+    flex: 1,
+  },
   listContainer: {
     flex: 1,
     paddingBottom: 20,
@@ -175,6 +256,21 @@ const actionStyles = StyleSheet.create({
     color: theme.colors.textPrimary,
     padding: 12,
   },
+  // Details section styles
+  detailsSection: {
+    marginBottom: 16,
+  },
+  detailsInput: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 8,
+    padding: 12,
+    color: theme.colors.textPrimary,
+    fontSize: 16,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
   modalButtonContainer: {
     marginTop: 20,
     gap: 12,
@@ -217,5 +313,6 @@ const actionStyles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
 
 export default actionStyles;

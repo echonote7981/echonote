@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   FlatList,
@@ -11,15 +11,18 @@ import {
   SafeAreaView,
   StyleSheet,
   TextInput,
+  Modal,
+  Pressable,
+  GestureResponderEvent,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { actionsApi, Action } from '../services/api';
+import { actionsApi, Action, ActionStatus } from '../services/api';
 import theme from '../styles/theme';
 import ActionDetailsModal from '../components/ActionDetailsModal';
-
-type ActionStatus = 'pending' | 'in_progress' | 'completed';
+import { useRouter } from 'expo-router';
 
 export default function ActionsScreen() {
+  const router = useRouter();
   const [actions, setActions] = useState<Action[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -28,6 +31,13 @@ export default function ActionsScreen() {
   const [selectedAction, setSelectedAction] = useState<Action | null>(null);
   const [searchText, setSearchText] = useState<string>('');
   const [showSearch, setShowSearch] = useState(false);
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  // For tracking action item interaction
+  const pressStartTime = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
+  const isScrolling = useRef<boolean>(false);
 
   const loadActions = async () => {
     try {
@@ -159,16 +169,136 @@ export default function ActionsScreen() {
     }
   };
 
-  const handleArchive = async (actionId: string) => {
+  // Handler to reopen a completed/archived task
+  const handleReopenTask = async (actionId: string) => {
     try {
-      await actionsApi.update(actionId, {
-        archived: true,
-        status: 'completed'
+      console.log('🔄 Reopening task:', actionId);
+      
+      // Update the action to pending status and remove archived flag
+      const updatedAction = await actionsApi.update(actionId, {
+        status: 'pending',
+        archived: false,
+        completedAt: undefined, // Clear the completion date
+        hasBeenOpened: true // Keep the opened flag
       });
+      
+      console.log('✅ Task reopened successfully:', updatedAction.title);
+      
+      // Show confirmation to user
+      Alert.alert(
+        'Task Reopened', 
+        'Task has been moved back to Pending.',
+        [{ text: 'OK' }]
+      );
+      
+      // Reload actions to update the UI
       await loadActions();
     } catch (error) {
+      console.error('❌ Failed to reopen task:', error);
+      Alert.alert('Error', 'Failed to reopen task. Please try again.');
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!selectedAction) return;
+    try {
+      console.log('💾 Archiving action:', selectedAction.id, selectedAction.title);
+      
+      // Create a complete update payload with all required fields
+      const archivePayload: Partial<Action> = {
+        archived: true,
+        status: 'completed' as ActionStatus, 
+        completedAt: new Date().toISOString(),
+        hasBeenOpened: true
+      };
+      
+      console.log('📝 Archive payload:', JSON.stringify(archivePayload));
+      
+      // First make sure action is marked as completed
+      const updatedAction = await actionsApi.update(selectedAction.id, archivePayload);
+      
+      // Verify the action was updated properly
+      console.log('✅ Action archived successfully with data:', JSON.stringify(updatedAction));
+      
+      // Verify the action is actually marked as archived
+      if (updatedAction.archived !== true) {
+        console.warn('⚠️ Warning: Action may not have been marked as archived properly');
+        
+        // Try a second update to force the archived flag if it didn't work
+        try {
+          console.log('🔄 Retrying archive operation with direct API call...');
+          await actionsApi.update(selectedAction.id, {
+            archived: true,
+            completedAt: new Date().toISOString()
+          });
+        } catch (retryError) {
+          console.error('❌ Retry failed:', retryError);
+        }
+      }
+      
+      // Force a data refresh by clearing the action list and reloading
+      setActions([]);
+      setShowActionMenu(false);
+      setSelectedAction(null);
+      
+      // Show confirmation to user
+      Alert.alert(
+        'Success', 
+        'Task archived successfully. You can view it in the Archives tab.',
+        [
+          { 
+            text: 'View Archives', 
+            onPress: () => {
+              // Navigate to archives tab
+              try {
+                router.push('/(tabs)/archived');
+              } catch (navError) {
+                console.error('❌ Navigation error:', navError);
+              }
+            } 
+          },
+          { text: 'OK', style: 'cancel' }
+        ]
+      );
+      
+      // Give the API a moment to process before refreshing
+      setTimeout(async () => {
+        // Reload both actions and archived actions to ensure UI is in sync
+        await loadActions();
+        try {
+          const archived = await actionsApi.getArchived();
+          console.log(`📄 Found ${archived.length} archived items after archiving`);
+        } catch (err) {
+          console.error('❌ Error checking archived actions', err);
+        }
+      }, 500);
+    } catch (error) {
+      console.error('❌ Failed to archive task:', error);
       Alert.alert('Error', 'Failed to archive task. Please try again.');
     }
+  };
+  
+  const handleDelete = async () => {
+    if (!selectedAction) return;
+    try {
+      await actionsApi.delete(selectedAction.id);
+      setShowDeleteConfirm(false);
+      setSelectedAction(null);
+      await loadActions();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete task. Please try again.');
+    }
+  };
+  
+  // Handle regular press to open action item
+  const handleActionItemPress = (action: Action) => {
+    handleActionPress(action);
+  };
+  
+  // Handle long press to show action menu
+  const handleLongPress = (action: Action) => {
+    setSelectedAction(action);
+    setShowActionMenu(true);
   };
 
   const renderActionItem = ({ item }: { item: Action }) => {
@@ -186,18 +316,21 @@ export default function ActionsScreen() {
     return (
       <TouchableOpacity
         style={styles.actionItem}
-        onPress={() => handleActionPress(item)}
+        onPress={() => handleActionItemPress(item)}
+        onLongPress={() => handleLongPress(item)}
+        delayLongPress={2000}
+        activeOpacity={0.7}
       >
         <View style={styles.actionContent}>
           <View style={styles.actionHeader}>
             <Text style={[
               styles.statusText,
-              item.status === 'in_progress' && styles.inProgressText,
+              (item.status === 'in_progress' || (item.status === 'pending' && item.hasBeenOpened)) && styles.inProgressText,
               item.status === 'completed' && styles.completedText,
             ]}>
               {item.status === 'pending' && !item.hasBeenOpened ? 'Pending' : 
-               item.status === 'in_progress' ? 'In Progress' : 
-               'Completed'}
+               item.status === 'in_progress' || (item.status === 'pending' && item.hasBeenOpened) ? 'In Process' : 
+               item.status === 'completed' ? 'Completed' : 'Not Started'}
             </Text>
             <Text style={styles.actionDueDate}>
               Due: {new Date(item.dueDate).toLocaleDateString()}
@@ -229,6 +362,79 @@ export default function ActionsScreen() {
         action.title.toLowerCase().includes(searchText.toLowerCase()) || 
         (action.notes && action.notes.toLowerCase().includes(searchText.toLowerCase()))
       );
+
+  // Render the action menu modal (Archive/Delete options)
+  const renderActionMenu = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={showActionMenu}
+      onRequestClose={() => setShowActionMenu(false)}
+    >
+      <Pressable
+        style={styles.modalOverlay}
+        onPress={() => setShowActionMenu(false)}
+      >
+        <View style={styles.actionMenuContainer}>
+          <View style={styles.actionMenu}>
+            <Pressable
+              style={styles.actionButton}
+              onPress={handleArchive}
+            >
+              <MaterialIcons name="archive" size={24} color="#007AFF" />
+              <Text style={styles.actionButtonText}>Archive</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.actionButton, { marginLeft: 10 }]}
+              onPress={() => {
+                setShowActionMenu(false);
+                setShowDeleteConfirm(true);
+              }}
+            >
+              <MaterialIcons name="delete" size={24} color="#FF3B30" />
+              <Text style={[styles.actionButtonText, { color: '#FF3B30' }]}>Delete</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Pressable>
+    </Modal>
+  );
+
+  // Render delete confirmation modal
+  const renderDeleteConfirm = () => (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={showDeleteConfirm}
+      onRequestClose={() => setShowDeleteConfirm(false)}
+    >
+      <Pressable
+        style={styles.modalOverlay}
+        onPress={() => setShowDeleteConfirm(false)}
+      >
+        <View style={styles.confirmDialog}>
+          <Text style={styles.confirmTitle}>Delete Task</Text>
+          <Text style={styles.confirmMessage}>
+            Are you sure you want to delete this task? This action cannot be undone.
+          </Text>
+          <View style={styles.confirmButtons}>
+            <Pressable
+              style={[styles.confirmButton, styles.cancelButton]}
+              onPress={() => setShowDeleteConfirm(false)}
+            >
+              <Text style={[styles.confirmButtonText, { color: '#FFFFFF' }]}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.confirmButton, styles.deleteButton]}
+              onPress={handleDelete}
+            >
+              <Text style={[styles.confirmButtonText, { color: '#FFFFFF' }]}>Delete</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Pressable>
+    </Modal>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -309,15 +515,20 @@ export default function ActionsScreen() {
         }
       />
 
-      {selectedAction && (
+      {selectedAction && !showActionMenu && !showDeleteConfirm && (
         <ActionDetailsModal
           visible={true}
           action={selectedAction}
           onClose={handleModalClose}
           onSave={handleSaveNotes}
           onComplete={handleCompleteTask}
+          onReopen={handleReopenTask}
         />
       )}
+      
+      {/* Render modals */}
+      {renderActionMenu()}
+      {renderDeleteConfirm()}
     </SafeAreaView>
   );
 }
@@ -332,6 +543,80 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionMenuContainer: {
+    width: '80%',
+    backgroundColor: '#1C1C1E',
+    borderRadius: 14,
+    overflow: 'hidden',
+    padding: 20,
+  },
+  actionMenu: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  actionButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    borderRadius: 10,
+    backgroundColor: '#2C2C2E',
+    width: 100,
+  },
+  actionButtonText: {
+    color: '#007AFF',
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  confirmDialog: {
+    width: '80%',
+    backgroundColor: '#1C1C1E',
+    borderRadius: 14,
+    overflow: 'hidden',
+    padding: 20,
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  confirmMessage: {
+    color: '#AAAAAA',
+    marginBottom: 20,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  confirmButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  confirmButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: '#3A3A3C',
+  },
+  deleteButton: {
+    backgroundColor: '#FF3B30',
+  },
+  confirmButtonText: {
+    fontWeight: '600',
+    fontSize: 16,
   },
   loadingContainer: {
     flex: 1,

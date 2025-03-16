@@ -41,44 +41,18 @@ export default function MeetingsScreen() {
     setRefreshing(false);
   };
 
-  const handlePressIn = (meeting: Meeting, event: GestureResponderEvent) => {
-    pressStartTime.current = Date.now();
-    touchStartY.current = event.nativeEvent.pageY;
-    isScrolling.current = false;
-    
-    longPressTimeout.current = setTimeout(() => {
-      if (!isScrolling.current) {
-        setSelectedMeeting(meeting);
-        setShowActionMenu(true);
-      }
-    }, 3000);
+  // Simple press event to open meeting details
+  const handlePress = (meeting: Meeting) => {
+    router.push({
+      pathname: "/meeting/[id]",
+      params: { id: meeting.id }
+    });
   };
-
-  const handlePressOut = (meeting: Meeting) => {
-    const pressDuration = Date.now() - pressStartTime.current;
-    if (longPressTimeout.current) {
-      clearTimeout(longPressTimeout.current);
-    }
-    
-    handlePress(meeting, pressDuration);
-  };
-
-  const handleMove = (event: GestureResponderEvent) => {
-    if (!isScrolling.current) {
-      const moveDistance = Math.abs(event.nativeEvent.pageY - touchStartY.current);
-      if (moveDistance > 10) {
-        isScrolling.current = true;
-      }
-    }
-  };
-
-  const handlePress = (meeting: Meeting, pressDuration: number) => {
-    if (pressDuration < 2000 && !isScrolling.current && !showActionMenu) {
-      router.push({
-        pathname: "/meeting/[id]",
-        params: { id: meeting.id }
-      });
-    }
+  
+  // Long press to show action menu
+  const handleLongPress = (meeting: Meeting) => {
+    setSelectedMeeting(meeting);
+    setShowActionMenu(true);
   };
 
   const handleArchive = async () => {
@@ -299,19 +273,9 @@ export default function MeetingsScreen() {
         meetingsStyles.meetingCard,
         pressed && { opacity: 0.7 }
       ]}
-      onPressIn={(e) => handlePressIn(item, e)}
-      onPressOut={() => handlePressOut(item)}
-      onTouchMove={(e) => {
-        if (!isScrolling.current) {
-          const moveDistance = Math.abs(e.nativeEvent.pageY - touchStartY.current);
-          if (moveDistance > 10) {
-            isScrolling.current = true;
-            if (longPressTimeout.current) {
-              clearTimeout(longPressTimeout.current);
-            }
-          }
-        }
-      }}
+      onPress={() => handlePress(item)}
+      onLongPress={() => handleLongPress(item)}
+      delayLongPress={2000}
     >
       <View style={meetingsStyles.meetingHeader}>
         <Text style={meetingsStyles.meetingTitle}>{item.title}</Text>

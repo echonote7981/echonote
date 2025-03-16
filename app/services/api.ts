@@ -184,7 +184,9 @@ export const meetingsApi = {
   // Archive meeting
   async archiveMeeting(id: string): Promise<void> {
     try {
-      const response = await api.post(`/meetings/${id}/archive`);
+      console.log(`Archiving meeting with ID: ${id}`);
+      // Fix: Make sure we're using the correct endpoint format
+      const response = await api.post(`/meetings/${id}/archive`, {});
       return response.data;
     } catch (error) {
       console.error('Failed to archive meeting:', error);
@@ -210,6 +212,9 @@ export const meetingsApi = {
 };
 
 export const actionsApi = {
+  // Utility to get Base URL for other components to use
+  getBaseUrl: () => BASE_URL,
+  
   // Get all actions
   getAll: async (filters?: { status?: 'pending' | 'completed' }): Promise<Action[]> => {
     try {
@@ -223,6 +228,63 @@ export const actionsApi = {
     } catch (error) {
       console.error('Failed to get actions:', error);
       throw new Error('Failed to get actions');
+    }
+  },
+  
+  // Get archived actions
+  getArchived: async (): Promise<Action[]> => {
+    try {
+      console.log('🔍 Attempting to fetch archived actions...');
+      // First try to get from dedicated API endpoint
+      try {
+        // Use query parameter instead of path parameter to avoid UUID parsing errors
+        const response = await api.get('/actions?archived=true');
+        console.log('✅ Successfully retrieved archived actions from API endpoint');
+        // Don't filter again, trust the server response
+        return response.data;
+      } catch (apiError) {
+        console.log('⚠️ API endpoint for archived actions not available, falling back to client filtering');
+        
+        // Fallback: Get all actions and filter on client side
+        console.log('🔍 Fetching all actions to filter...');
+        const allActions = await actionsApi.getAll();
+        console.log(`ℹ️ Total actions retrieved: ${allActions.length}`);
+        
+        // Check for actions explicitly marked as archived
+        let archivedActions = allActions.filter(action => action.archived === true);
+        
+        // If no explicitly archived actions found, also include completed actions that should be archived
+        if (archivedActions.length === 0) {
+          console.log('⚠️ No actions with archived=true found, checking for completed actions...');
+          
+          // Find completed actions that should be considered archived
+          const completedActions = allActions.filter(action => 
+            action.status === 'completed' && 
+            !action.archived // Only include if not already counted
+          );
+          
+          if (completedActions.length > 0) {
+            console.log(`🔢 Found ${completedActions.length} completed actions that could be considered archived`);
+            // Mark these as archived for UI display
+            archivedActions = [...archivedActions, ...completedActions.map(action => ({
+              ...action,
+              archived: true // Set archived flag for display purposes
+            }))];
+          }
+        }
+        
+        if (archivedActions.length > 0) {
+          console.log(`✅ Found ${archivedActions.length} archived actions`);
+          archivedActions.forEach(action => {
+            console.log(`📄 Archived action: ${action.id} - ${action.title} - Status: ${action.status}`);
+          });
+        }
+        
+        return archivedActions;
+      }
+    } catch (error) {
+      console.error('❌ Failed to get archived actions:', error);
+      return []; // Return empty array on error instead of throwing
     }
   },
 
@@ -262,10 +324,24 @@ export const actionsApi = {
   // Update action
   update: async (id: string, updates: Partial<Action>): Promise<Action> => {
     try {
+      console.log(`💾 Updating action ${id} with:`, updates);
+      
+      // If we're archiving, ensure the status is set to completed
+      if (updates.archived === true && !updates.status) {
+        console.log('⚙️ Setting status to completed for archived action');
+        updates.status = 'completed';
+      }
+      
+      // If we're archiving, ensure completedAt is set
+      if (updates.archived === true && !updates.completedAt) {
+        updates.completedAt = new Date().toISOString();
+      }
+      
       const response = await api.put(`/actions/${id}`, updates);
+      console.log(`✅ Action ${id} updated successfully:`, response.data);
       return response.data;
     } catch (error) {
-      console.error(`Failed to update action ${id}:`, error);
+      console.error(`❌ Failed to update action ${id}:`, error);
       throw new Error('Failed to update action');
     }
   },
@@ -304,10 +380,43 @@ export const actionsApi = {
   // Cleanup pending actions - can be used to bulk delete, complete, or archive
   cleanup: async (action: 'delete' | 'complete' | 'archive', meetingId?: string): Promise<{ message: string }> => {
     try {
+      console.log(`🔎 Cleaning up actions with operation: ${action}, meetingId: ${meetingId || 'all'}`);
+      
+      // For archive operation, ensure we're setting all required fields
+      if (action === 'archive') {
+        // If the archive endpoint doesn't exist or fails, manually archive each item
+        try {
+          const response = await api.post('/actions/cleanup', { action, meetingId });
+          console.log('✅ Bulk archive operation successful');
+          return response.data;
+        } catch (apiError) {
+          console.log('⚠️ Bulk archive API failed, falling back to manual archiving');
+          
+          // Get all actions that should be archived (filter by meetingId if provided)
+          const allActions = await actionsApi.getAll();
+          const actionsToArchive = meetingId 
+            ? allActions.filter(a => a.meetingId === meetingId) 
+            : allActions.filter(a => a.status === 'completed' && !a.archived);
+            
+          console.log(`📄 Manually archiving ${actionsToArchive.length} actions`);
+          
+          // Archive each action
+          for (const action of actionsToArchive) {
+            await actionsApi.update(action.id, { 
+              archived: true, 
+              status: 'completed',
+              completedAt: new Date().toISOString()
+            });
+          }
+          
+          return { message: `Manually archived ${actionsToArchive.length} actions` };
+        }
+      }
+      
       const response = await api.post('/actions/cleanup', { action, meetingId });
       return response.data;
     } catch (error) {
-      console.error('Failed to cleanup pending actions:', error);
+      console.error('❌ Failed to cleanup pending actions:', error);
       throw new Error('Failed to cleanup pending actions');
     }
   },

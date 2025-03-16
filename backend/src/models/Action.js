@@ -59,6 +59,11 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE,
       allowNull: true,
       defaultValue: null
+    },
+    archived: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
     }
   }, {
     timestamps: true,
