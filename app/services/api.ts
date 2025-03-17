@@ -258,9 +258,10 @@ export const actionsApi = {
           console.log('⚠️ No actions with archived=true found, checking for completed actions...');
           
           // Find completed actions that should be considered archived
+          // Include ALL completed tasks regardless of archived flag (to match archived.tsx behavior)
           const completedActions = allActions.filter(action => 
-            action.status === 'completed' && 
-            !action.archived // Only include if not already counted
+            action.status === 'completed'
+            // Removed !action.archived condition to show all completed tasks
           );
           
           if (completedActions.length > 0) {

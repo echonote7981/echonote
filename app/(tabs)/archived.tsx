@@ -37,24 +37,26 @@ export default function ArchivedScreen() {
         console.log('📋 Attempting to fetch archived actions...');
         let archivedActionsData: Action[] = [];
         
+        // We're going to directly use the most reliable method for fetching completed tasks
+        // which is to get ALL actions and filter for completed ones
         try {
-          console.log('📞 Calling actionsApi.getArchived()...');
-          archivedActionsData = await actionsApi.getArchived();
-          console.log(`📄 Raw archived actions data: ${JSON.stringify(archivedActionsData)}`);
+          console.log('🔄 Fetching all actions to find completed/archived ones...');
+          const allActions = await actionsApi.getAll();
+          console.log(`📊 Total actions found: ${allActions.length}`);
+          
+          // Include BOTH explicitly archived actions AND any completed ones
+          archivedActionsData = allActions.filter(action => 
+            action.archived === true || 
+            action.status === 'completed' // Include ALL completed tasks regardless of archived flag
+          );
+          
+          console.log(`✅ Found ${archivedActionsData.length} archived/completed actions`);
+          // Debug logging to see what we found
+          archivedActionsData.forEach((action, index) => {
+            console.log(`Action ${index + 1}: ID=${action.id}, Title=${action.title}, Status=${action.status}, Archived=${action.archived}`);
+          });
         } catch (error) {
-          console.error('❌ Error in primary archive fetch method:', error);
-          // Try fallback: get all actions and filter
-          try {
-            console.log('🔄 Trying fallback: fetching all actions...');
-            const allActions = await actionsApi.getAll();
-            archivedActionsData = allActions.filter(action => 
-              action.archived === true || 
-              action.status === 'completed' // Show ALL completed tasks regardless of other flags
-            );
-            console.log(`🔢 Fallback found ${archivedActionsData.length} archived actions`);
-          } catch (fallbackError) {
-            console.error('❌ Fallback method also failed:', fallbackError);
-          }
+          console.error('❌ Error fetching actions:', error);
         }
         
         // Remove duplicate entries by using a Map with action IDs as keys
