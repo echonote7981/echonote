@@ -1,0 +1,33 @@
+{
+    "welcome": "歡迎來到 EchoNotes",
+    "settings": "設定",
+    "language": "語言",
+    "meetings": "會議",
+    "actions": "行動",
+    "archives": "存檔",
+    "recording": "錄音",
+    "newMeeting": "新會議",
+    "title": "標題",
+    "date": "日期",
+    "duration": "持續時間",
+    "transcript": "逐字稿",
+    "actionItems": "行動項目",
+    "highlights": "重點",
+    "priority": {
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "status": {
+      "notReviewed": "未審查",
+      "pending": "待處理",
+      "inProgress": "進行中",
+      "completed": "已完成"
+    },
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "刪除",
+    "edit": "編輯",
+    "share": "分享",
+    "change_language": "更改語言"
+  }

@@ -18,6 +18,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { actionsApi, Action, ActionStatus } from '../services/api';
 import theme from '../styles/theme';
+import globalStyles from '../styles/globalStyles';
 import ActionDetailsModal from '../components/ActionDetailsModal';
 import ActionItemModal from '../components/ActionItemModal';
 import { useRouter } from 'expo-router';
@@ -316,19 +317,19 @@ export default function ActionsScreen() {
     
     return (
       <TouchableOpacity
-        style={styles.actionItem}
+        style={globalStyles.actionItem}
         onPress={() => handleActionItemPress(item)}
         onLongPress={() => handleLongPress(item)}
         delayLongPress={2000}
         activeOpacity={0.7}
       >
-        <View style={styles.actionContent}>
-          <View style={styles.actionHeader}>
-            <View style={styles.statusContainer}>
+        <View style={globalStyles.actionContent}>
+          <View style={globalStyles.actionHeader}>
+            <View style={globalStyles.statusContainer}>
               <Text style={[
-                styles.statusText,
-                (item.status === 'in_progress' || (item.status === 'pending' && item.hasBeenOpened)) && styles.inProgressText,
-                item.status === 'completed' && styles.completedText,
+                globalStyles.statusText,
+                (item.status === 'in_progress' || (item.status === 'pending' && item.hasBeenOpened)) && globalStyles.inProgressText,
+                item.status === 'completed' && globalStyles.completedText,
               ]}>
                 {item.status === 'pending' && !item.hasBeenOpened ? 'Pending' : 
                  item.status === 'in_progress' || (item.status === 'pending' && item.hasBeenOpened) ? 'In Progress' : 
@@ -337,27 +338,27 @@ export default function ActionsScreen() {
               
               {filter === 'pending' && (
                 <View style={[
-                  styles.priorityFlag,
-                  item.priority === 'High' && styles.highPriorityFlag,
-                  item.priority === 'Medium' && styles.mediumPriorityFlag,
-                  item.priority === 'Low' && styles.lowPriorityFlag,
+                  globalStyles.priorityFlag,
+                  item.priority === 'High' && globalStyles.highPriorityFlag,
+                  item.priority === 'Medium' && globalStyles.mediumPriorityFlag,
+                  item.priority === 'Low' && globalStyles.lowPriorityFlag,
                 ]}>
-                  <Text style={styles.priorityText}>{item.priority}</Text>
+                  <Text style={globalStyles.priorityText}>{item.priority}</Text>
                 </View>
               )}
             </View>
-            <Text style={styles.actionDueDate}>
+            <Text style={globalStyles.actionDueDate}>
               Due: {new Date(item.dueDate).toLocaleDateString()}
             </Text>
           </View>
-          <Text style={styles.actionTitle}>{heading}</Text>
+          <Text style={globalStyles.actionTitle}>{heading}</Text>
           {content ? (
-            <Text style={styles.actionText}>
+            <Text style={globalStyles.actionText}>
               {content}
             </Text>
           ) : null}
           {item.notes && (
-            <Text style={styles.actionNotes} numberOfLines={2}>
+            <Text style={globalStyles.actionNotes} numberOfLines={2}>
               {item.notes}
             </Text>
           )}
@@ -386,27 +387,27 @@ export default function ActionsScreen() {
       onRequestClose={() => setShowActionMenu(false)}
     >
       <Pressable
-        style={styles.modalOverlay}
+        style={globalStyles.modalOverlay}
         onPress={() => setShowActionMenu(false)}
       >
-        <View style={styles.actionMenuContainer}>
-          <View style={styles.actionMenu}>
+        <View style={globalStyles.actionMenuContainer}>
+          <View style={globalStyles.actionMenu}>
             <Pressable
-              style={styles.actionButton}
+              style={globalStyles.actionButton}
               onPress={handleArchive}
             >
               <MaterialIcons name="archive" size={24} color="#007AFF" />
-              <Text style={styles.actionButtonText}>Archive</Text>
+              <Text style={globalStyles.actionButtonText}>Archive</Text>
             </Pressable>
             <Pressable
-              style={[styles.actionButton, { marginLeft: 10 }]}
+              style={[globalStyles.actionButton, { marginLeft: 10 }]}
               onPress={() => {
                 setShowActionMenu(false);
                 setShowDeleteConfirm(true);
               }}
             >
               <MaterialIcons name="delete" size={24} color="#FF3B30" />
-              <Text style={[styles.actionButtonText, { color: '#FF3B30' }]}>Delete</Text>
+              <Text style={[globalStyles.actionButtonText, { color: '#FF3B30' }]}>Delete</Text>
             </Pressable>
           </View>
         </View>
@@ -423,26 +424,26 @@ export default function ActionsScreen() {
       onRequestClose={() => setShowDeleteConfirm(false)}
     >
       <Pressable
-        style={styles.modalOverlay}
+        style={globalStyles.modalOverlay}
         onPress={() => setShowDeleteConfirm(false)}
       >
-        <View style={styles.confirmDialog}>
-          <Text style={styles.confirmTitle}>Delete Task</Text>
-          <Text style={styles.confirmMessage}>
+        <View style={globalStyles.confirmDialog}>
+          <Text style={globalStyles.confirmTitle}>Delete Task</Text>
+          <Text style={globalStyles.confirmMessage}>
             Are you sure you want to delete this task? This action cannot be undone.
           </Text>
-          <View style={styles.confirmButtons}>
+          <View style={globalStyles.confirmButtons}>
             <Pressable
-              style={[styles.confirmButton, styles.cancelButton]}
+              style={[globalStyles.confirmButton, globalStyles.cancelButton]}
               onPress={() => setShowDeleteConfirm(false)}
             >
-              <Text style={[styles.confirmButtonText, { color: '#FFFFFF' }]}>Cancel</Text>
+              <Text style={[globalStyles.confirmButtonText, { color: '#FFFFFF' }]}>Cancel</Text>
             </Pressable>
             <Pressable
-              style={[styles.confirmButton, styles.deleteButton]}
+              style={[globalStyles.confirmButton, globalStyles.deleteButton]}
               onPress={handleDelete}
             >
-              <Text style={[styles.confirmButtonText, { color: '#FFFFFF' }]}>Delete</Text>
+              <Text style={[globalStyles.confirmButtonText, { color: '#FFFFFF' }]}>Delete</Text>
             </Pressable>
           </View>
         </View>
@@ -451,29 +452,29 @@ export default function ActionsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.filterButtons}>
+    <SafeAreaView style={globalStyles.container}>
+      <View style={globalStyles.header}>
+        <View style={globalStyles.filterButtons}>
           <TouchableOpacity
-            style={[styles.filterButton, filter === 'pending' && styles.activeFilterButton]}
+            style={[globalStyles.filterButton, filter === 'pending' && globalStyles.activeFilterButton]}
             onPress={() => setFilter('pending')}
           >
-            <Text style={[styles.filterButtonText, filter === 'pending' && styles.activeFilterButtonText]}>
+            <Text style={[globalStyles.filterButtonText, filter === 'pending' && globalStyles.activeFilterButtonText]}>
               Pending
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterButton, filter === 'completed' && styles.activeFilterButton]}
+            style={[globalStyles.filterButton, filter === 'completed' && globalStyles.activeFilterButton]}
             onPress={() => setFilter('completed')}
           >
-            <Text style={[styles.filterButtonText, filter === 'completed' && styles.activeFilterButtonText]}>
+            <Text style={[globalStyles.filterButtonText, filter === 'completed' && globalStyles.activeFilterButtonText]}>
               Completed
             </Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.headerActions}>
+        <View style={globalStyles.headerActions}>
           <TouchableOpacity
-            style={styles.iconButton}
+            style={globalStyles.iconButton}
             onPress={() => setShowSearch(!showSearch)}
           >
             <MaterialIcons
@@ -483,7 +484,7 @@ export default function ActionsScreen() {
             />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.iconButton}
+            style={globalStyles.iconButton}
             onPress={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
           >
             <MaterialIcons
@@ -496,16 +497,16 @@ export default function ActionsScreen() {
       </View>
       
       {showSearch && (
-        <View style={styles.searchContainer}>
+        <View style={globalStyles.searchContainer}>
           <TextInput
-            style={styles.searchInput}
+            style={globalStyles.searchInput}
             placeholder="Search tasks..."
             value={searchText}
             onChangeText={setSearchText}
             autoFocus
           />
           {searchText !== '' && (
-            <TouchableOpacity onPress={() => setSearchText('')} style={styles.clearButton}>
+            <TouchableOpacity onPress={() => setSearchText('')} style={globalStyles.clearButton}>
               <MaterialIcons name="clear" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           )}
@@ -516,13 +517,13 @@ export default function ActionsScreen() {
         data={filteredActions}
         renderItem={renderActionItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={globalStyles.listContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
+          <View style={globalStyles.emptyContainer}>
+            <Text style={globalStyles.emptyText}>
               {searchText.trim() !== '' ? 'No matching tasks found' : `No ${filter} actions found`}
             </Text>
           </View>

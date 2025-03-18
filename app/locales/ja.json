@@ -1,0 +1,33 @@
+{
+    "welcome": "EchoNotesへようこそ",
+    "settings": "設定",
+    "language": "言語",
+    "meetings": "会議",
+    "actions": "アクション",
+    "archives": "アーカイブ",
+    "recording": "録音",
+    "newMeeting": "新しい会議",
+    "title": "タイトル",
+    "date": "日付",
+    "duration": "期間",
+    "transcript": "文字起こし",
+    "actionItems": "アクションアイテム",
+    "highlights": "ハイライト",
+    "priority": {
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    },
+    "status": {
+      "notReviewed": "未確認",
+      "pending": "保留中",
+      "inProgress": "進行中",
+      "completed": "完了"
+    },
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "share": "共有",
+    "change_language": "言語を変更する"
+  }

@@ -1,0 +1,33 @@
+{
+    "welcome": "Bem-vindo ao EchoNotes",
+    "settings": "Configurações",
+    "language": "Idioma",
+    "meetings": "Reuniões",
+    "actions": "Ações",
+    "archives": "Arquivos",
+    "recording": "Gravação",
+    "newMeeting": "Nova Reunião",
+    "title": "Título",
+    "date": "Data",
+    "duration": "Duração",
+    "transcript": "Transcrição",
+    "actionItems": "Itens de Ação",
+    "highlights": "Destaques",
+    "priority": {
+      "high": "Alta",
+      "medium": "Média",
+      "low": "Baixa"
+    },
+    "status": {
+      "notReviewed": "Não revisado",
+      "pending": "Pendente",
+      "inProgress": "Em andamento",
+      "completed": "Concluído"
+    },
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "share": "Compartilhar",
+    "change_language": "Mudar idioma"
+  }

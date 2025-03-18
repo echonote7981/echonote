@@ -1,0 +1,33 @@
+{
+    "welcome": "EchoNotes에 오신 것을 환영합니다",
+    "settings": "설정",
+    "language": "언어",
+    "meetings": "회의",
+    "actions": "작업",
+    "archives": "보관",
+    "recording": "녹음",
+    "newMeeting": "새 회의",
+    "title": "제목",
+    "date": "날짜",
+    "duration": "기간",
+    "transcript": "필기록",
+    "actionItems": "작업 항목",
+    "highlights": "하이라이트",
+    "priority": {
+      "high": "높음",
+      "medium": "중간",
+      "low": "낮음"
+    },
+    "status": {
+      "notReviewed": "검토되지 않음",
+      "pending": "보류 중",
+      "inProgress": "진행 중",
+      "completed": "완료됨"
+    },
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "edit": "편집",
+    "share": "공유",
+    "change_language": "언어 변경"
+  }

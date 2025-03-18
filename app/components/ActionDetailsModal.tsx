@@ -17,6 +17,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Action } from '../services/api';
 import theme from '../styles/theme';
 import actionStyles from '../styles/actions';
+import globalStyles from '../styles/globalStyles';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+
 
 interface ActionDetailsModalProps {
   visible: boolean;
@@ -129,6 +133,9 @@ export default function ActionDetailsModal({
       animationType="slide"
       onRequestClose={onClose}
     >
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <View style={globalStyles.container}>
+    
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={actionStyles.modalContainer}
@@ -304,6 +311,9 @@ export default function ActionDetailsModal({
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
+      </View>
+    </SafeAreaView> 
     </Modal>
+    
   );
 }

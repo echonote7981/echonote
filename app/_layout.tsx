@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import { View } from 'react-native';
+import '../app/i18n';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import CustomSplashScreen from './components/SplashScreen';
@@ -22,8 +23,7 @@ export default function RootLayout() {
     if (loaded) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
-
+  }, [loaded]);// At the top of your App.tsx or _layout.tsx
   if (!loaded) {
     return null;
   }

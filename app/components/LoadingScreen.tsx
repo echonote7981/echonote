@@ -1,5 +1,9 @@
 import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import theme from '../styles/theme';
+import globalStyles from '../styles/globalStyles';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'react-native';
 
 interface LoadingScreenProps {
   message?: string;
@@ -7,10 +11,13 @@ interface LoadingScreenProps {
 
 export default function LoadingScreen({ message = 'Loading...' }: LoadingScreenProps) {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
+      <View style={styles.container}>
       <ActivityIndicator size="large" color="#007AFF" />
       <Text style={styles.message}>{message}</Text>
     </View>
+    </SafeAreaView>
   );
 }
 

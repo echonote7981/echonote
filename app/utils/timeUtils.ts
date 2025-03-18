@@ -11,7 +11,12 @@ const timeUtils = {
   },
   
   formatTime(date: Date): string {
-    // TO DO: implement formatTime function
+    // Format time as HH:MM AM/PM
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
   },
   // Add other time utility functions here
 };

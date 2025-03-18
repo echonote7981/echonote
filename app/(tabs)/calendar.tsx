@@ -215,14 +215,25 @@ export default function CalendarScreen() {
           >
             <View style={calendarStyles.modalContainer}>
               <View style={calendarStyles.modalContent}>
-                <ActionItemModal
+              <ActionItemModal
                   visible={true}
                   initialAction={selectedAction}
                   onClose={handleCloseModal}
                   onSave={(updatedAction) => {
-                    // Reload actions after save to reflect any changes
-                    handleCloseModal();
-                    loadActions();
+                    // Save changes to the API before closing the modal
+                    if (selectedAction && selectedAction.id) {
+                      actionsApi.update(selectedAction.id, updatedAction)
+                        .then(() => {
+                          handleCloseModal();
+                          loadActions();
+                        })
+                        .catch((error) => {
+                          console.error('Failed to update action item:', error);
+                          // Still close the modal even if there's an error
+                          handleCloseModal();
+                          loadActions();
+                        });
+                    }
                   }}
                   onDelete={(action) => {
                     // Handle deletion if needed

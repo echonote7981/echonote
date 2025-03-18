@@ -121,14 +121,16 @@ export default function MeetingDetails() {
         // Close modal after updating an existing action
         setActionModalVisible(false);
       } else {
-        // Create new action with the status as specified in the modal
+        // For new actions:
+        // - If status is explicitly provided (like from auto-extraction), keep it
+        // - If manually created (no status), set as 'pending' so it appears in Actions tab
         const newAction = await actionsApi.create({
           meetingId: id as string,
           title: actionData.title || '',
           details: actionData.details || '',
           dueDate: actionData.dueDate || new Date().toISOString(),
           priority: actionData.priority || 'Medium',
-          status: actionData.status || 'not_reviewed',
+          status: actionData.status || 'pending',
           notes: actionData.notes,
         });
         

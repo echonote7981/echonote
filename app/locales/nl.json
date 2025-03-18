@@ -1,0 +1,33 @@
+{
+    "welcome": "Welkom bij EchoNotes",
+    "settings": "Instellingen",
+    "language": "Taal",
+    "meetings": "Vergaderingen",
+    "actions": "Acties",
+    "archives": "Archieven",
+    "recording": "Opname",
+    "newMeeting": "Nieuwe Vergadering",
+    "title": "Titel",
+    "date": "Datum",
+    "duration": "Duur",
+    "transcript": "Transcript",
+    "actionItems": "Actiepunten",
+    "highlights": "Hoogtepunten",
+    "priority": {
+      "high": "Hoog",
+      "medium": "Middel",
+      "low": "Laag"
+    },
+    "status": {
+      "notReviewed": "Niet beoordeeld",
+      "pending": "In behandeling",
+      "inProgress": "Lopend",
+      "completed": "Voltooid"
+    },
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "share": "Delen",
+    "change_language": "Taal veranderen"
+  }

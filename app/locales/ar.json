@@ -1,0 +1,33 @@
+{
+    "welcome": "مرحبًا بك في EchoNotes",
+    "settings": "الإعدادات",
+    "language": "اللغة",
+    "meetings": "الاجتماعات",
+    "actions": "الإجراءات",
+    "archives": "الأرشيف",
+    "recording": "التسجيل",
+    "newMeeting": "اجتماع جديد",
+    "title": "العنوان",
+    "date": "التاريخ",
+    "duration": "المدة",
+    "transcript": "النص المكتوب",
+    "actionItems": "عناصر الإجراء",
+    "highlights": "النقاط البارزة",
+    "priority": {
+      "high": "عالية",
+      "medium": "متوسطة",
+      "low": "منخفضة"
+    },
+    "status": {
+      "notReviewed": "لم تتم مراجعته",
+      "pending": "قيد الانتظار",
+      "inProgress": "قيد التنفيذ",
+      "completed": "مكتمل"
+    },
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تحرير",
+    "share": "مشاركة"               ,
+    "change_language": "تغيير اللغة"
+  }

@@ -18,6 +18,9 @@ import {
 import { Action } from '../services/api';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import theme from '../styles/theme';
+import globalStyles from '../styles/globalStyles';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface ActionItemModalProps {
   visible: boolean;
@@ -69,7 +72,7 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
     setNotes('');
     setDetails('');
     setPriority('Medium');
-    setStatus('pending');
+    setStatus('pending');  // Default to 'pending' here too
     const defaultDueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     setDueDate(defaultDueDate);
     setDateInputText(defaultDueDate.toLocaleDateString());
@@ -206,6 +209,8 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
       transparent={true}
       onRequestClose={handleClose}
     >
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <View style={globalStyles.container}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.modalContainer}
@@ -474,7 +479,10 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
+      </View>
+      </SafeAreaView> 
     </Modal>
+    
   );
 }
 

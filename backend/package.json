@@ -10,6 +10,8 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@react-native-firebase/app": "^21.12.0",
+    "@react-native-firebase/firestore": "^21.12.0",
     "axios": "^1.7.9",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
