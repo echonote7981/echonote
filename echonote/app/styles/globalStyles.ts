@@ -420,6 +420,52 @@ const globalStyles = StyleSheet.create({
   selectedItem: {
     backgroundColor: 'rgba(187, 134, 252, 0.2)',
   },
+  // Upgrade screen styles
+  upgradeContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upgradeTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+    marginBottom: 24,
+  },
+  upgradeFeatures: {
+    alignItems: 'flex-start',
+    marginBottom: 24,
+    width: '100%',
+  },
+  upgradeFeatureText: {
+    fontSize: 18,
+    color: theme.colors.textPrimary,
+    marginBottom: 12,
+  },
+  upgradeButton: {
+    backgroundColor: theme.colors.primary,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    width: '80%',
+    marginBottom: 16,
+  },
+  upgradeButtonText: {
+    fontSize: 18,
+    color: theme.colors.onPrimary || '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  upgradeRestoreButton: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  upgradeRestoreText: {
+    color: theme.colors.textPrimary,
+    fontSize: 16,
+  }
 });
 
 export default globalStyles;

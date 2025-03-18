@@ -75,6 +75,59 @@ const recordStyles = StyleSheet.create({
   processingText: {
     color: 'white',
     fontSize: 16,
+  },
+  // Banner styles for premium upgrade notification
+  banner: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: theme.colors.warning || '#FF9800',
+    padding: 15,
+    borderRadius: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  bannerText: {
+    color: '#fff',
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  upgradeText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+    textDecorationLine: 'underline',
+    marginLeft: 10,
+  },
+  // Styles for usage indicator
+  usageContainer: {
+    width: '90%',
+    marginTop: 10,
+    padding: 10,
+  },
+  usageText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginBottom: 5,
+  },
+  usageBarContainer: {
+    height: 6,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  usageBar: {
+    height: '100%',
+    backgroundColor: theme.colors.primary,
+    borderRadius: 3,
   }
 });
 

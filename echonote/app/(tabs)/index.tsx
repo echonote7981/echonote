@@ -16,12 +16,20 @@ import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import recordStyles from '../styles/record';
 import { AppState } from 'react-native';
+import { v4 as uuidv4 } from 'uuid';
+
+// Firebase imports
+import { saveRecording, updateRecordingTime } from '../utils/firestoreUtils';
+import { authenticateUser } from '../utils/userUtils';
 
 const formatTime = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
+
+// Maximum recording time for guest users (4 hours in seconds)
+const MAX_GUEST_RECORDING_TIME = 14400;
 
 export default function RecordScreen() {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
@@ -32,6 +40,66 @@ export default function RecordScreen() {
   const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const router = useRouter();
+  
+  // User status states
+  const [isGuestUser, setIsGuestUser] = useState(true); // Default to guest user, update based on your authentication logic
+  const [showUpgradeBanner, setShowUpgradeBanner] = useState(false);
+  const [totalTimeRecorded, setTotalTimeRecorded] = useState(0);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Initialize user authentication and load user data
+  useEffect(() => {
+    const initUser = async () => {
+      try {
+        // Get the authenticated user ID
+        const storedUserId = await AsyncStorage.getItem('userId');
+        
+        if (!storedUserId) {
+          // If no user ID is found, authenticate with Firebase
+          const newUserId = await authenticateUser();
+          setUserId(newUserId);
+        } else {
+          setUserId(storedUserId);
+        }
+        
+        // Check if user is premium
+        const isPremium = await AsyncStorage.getItem('isPremium');
+        setIsGuestUser(isPremium !== 'true');
+        
+        // Load recording time
+        if (isPremium !== 'true') {
+          const time = await AsyncStorage.getItem('recordingTime');
+          if (time) {
+            const recordedTime = parseInt(time, 10);
+            setTotalTimeRecorded(recordedTime);
+            
+            // Show upgrade banner if approaching limit (less than 5 minutes remaining)
+            if (recordedTime >= MAX_GUEST_RECORDING_TIME - 300) {
+              setShowUpgradeBanner(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error initializing user:', err);
+        // Fall back to local storage for user data
+        AsyncStorage.getItem('recordingTime').then(time => {
+          if (time) {
+            const recordedTime = parseInt(time, 10);
+            setTotalTimeRecorded(recordedTime);
+            
+            // Show upgrade banner if approaching limit
+            if (recordedTime >= MAX_GUEST_RECORDING_TIME - 300) {
+              setShowUpgradeBanner(true);
+            }
+          }
+        });
+      }
+    };
+    
+    initUser();
+  }, []);
+
+
 
   // Initialize audio session
   useEffect(() => {
@@ -53,6 +121,15 @@ export default function RecordScreen() {
 
     initAudioSession();
   }, []);
+
+  // Check upgrade banner visibility whenever total recorded time changes
+  useEffect(() => {
+    if (isGuestUser && totalTimeRecorded >= MAX_GUEST_RECORDING_TIME - 300) {
+      setShowUpgradeBanner(true);
+    } else if (!isGuestUser) {
+      setShowUpgradeBanner(false);
+    }
+  }, [isGuestUser, totalTimeRecorded]);
 
   // Persist recording state in storage
   useEffect(() => {
@@ -142,6 +219,22 @@ export default function RecordScreen() {
         return;
       }
 
+      // Fetch stored recording time
+      const storedTime = await AsyncStorage.getItem('recordingTime');
+      const storedTimeValue = storedTime ? parseInt(storedTime, 10) : 0;
+
+      if (isGuestUser && storedTimeValue >= MAX_GUEST_RECORDING_TIME) {
+        Alert.alert(
+          'Recording Limit Reached',
+          'You have reached the maximum recording time for guest users. Please upgrade to continue recording.',
+          [
+            { text: 'Upgrade', onPress: navigateToUpgradeScreen },
+            { text: 'Cancel' }
+          ]
+        );
+        return;
+      }
+
       console.log('Starting recording...');
       const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
@@ -151,15 +244,27 @@ export default function RecordScreen() {
       recordingRef.current = recording;
       setIsPaused(false);
 
-      // Start timer
+      // Start the timer
       const interval = setInterval(() => {
-        setTimer((prev) => prev + 1);
-      }, 1000);
-      setTimerInterval(interval);
+        setTimer((prev) => {
+          const newTime = prev + 1;
 
-    } catch (err) {
-      console.error('Failed to start recording:', err);
-      Alert.alert('Error', 'Failed to start recording. Please check app permissions.');
+          if (isGuestUser && totalTimeRecorded + newTime >= MAX_GUEST_RECORDING_TIME - 300) {
+            setShowUpgradeBanner(true); // Show banner when 5 min left
+          }
+
+          if (isGuestUser && totalTimeRecorded + newTime >= MAX_GUEST_RECORDING_TIME) {
+            stopRecording();
+          }
+
+          return newTime;
+        });
+      }, 1000);
+
+      setTimerInterval(interval);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      Alert.alert('Error', 'Could not start recording. Please try again.');
     }
   };
 
@@ -216,12 +321,37 @@ export default function RecordScreen() {
         // Stop the recording
         await currentRecording.stopAndUnloadAsync();
         
-        // Upload the recording
+        // Create a unique ID for the recording
+        const recordingId = uuidv4();
+        
+        // Save to API (don't include recordingId here - it will be generated by the server)
         await meetingsApi.create({
           title,
           audioUri: uri,
-          duration: timer,
+          duration: timer
         });
+        
+        // If we have a user ID, save to Firestore
+        if (userId) {
+          const recordingData = {
+            id: recordingId,
+            title,
+            audioUri: uri,
+            duration: timer,
+            createdAt: new Date()
+          };
+          
+          // Save recording metadata to Firestore
+          await saveRecording(userId, recordingData);
+          
+          // Update user's total recording time
+          await updateRecordingTime(userId, timer);
+        }
+
+        // Update total recording time (also saved locally for offline access)
+        const newTotalTimeRecorded = totalTimeRecorded + timer;
+        setTotalTimeRecorded(newTotalTimeRecorded);
+        await AsyncStorage.setItem('recordingTime', newTotalTimeRecorded.toString());
 
         // Clear state and navigate only after successful upload
         await clearRecordingState();
@@ -246,6 +376,13 @@ export default function RecordScreen() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Function to navigate to the upgrade page
+  const navigateToUpgradeScreen = () => {
+    // Navigate to the upgrade screen or show upgrade modal
+    router.push('/subscription');
+    console.log('Navigating to upgrade screen');
   };
 
   return (
@@ -299,6 +436,19 @@ export default function RecordScreen() {
         {isProcessing && (
           <View style={recordStyles.processingContainer}>
             <Text style={recordStyles.processingText}>Processing recording...</Text>
+          </View>
+        )}
+        
+        {showUpgradeBanner && (
+          <View style={recordStyles.banner}>
+            <Text style={recordStyles.bannerText}>
+              {recording ? 
+                `Only ${MAX_GUEST_RECORDING_TIME - totalTimeRecorded - timer} seconds left.` :
+                `Only ${MAX_GUEST_RECORDING_TIME - totalTimeRecorded} seconds of recording time left.`} Become a Premium member today.
+            </Text>
+            <TouchableOpacity onPress={navigateToUpgradeScreen}>
+              <Text style={recordStyles.upgradeText}>Upgrade Now</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
