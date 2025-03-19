@@ -37,6 +37,42 @@ const globalStyles = StyleSheet.create({
     padding: 8,
     marginLeft: 8,
   },
+
+  banner: {
+    backgroundColor: '#FFD700',
+    padding: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    borderRadius: 8,
+  },
+  bannerText: {
+    color: '#000',
+    fontSize: 14,
+    flex: 1,
+    marginRight: 10,
+  },
+  bannerButton: {
+    backgroundColor: '#000',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 4,
+  },
+  bannerButtonText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  dismissButton: {
+    marginLeft: 10,
+    padding: 8,
+  },
+  dismissButtonText: {
+    color: '#000',
+    fontSize: 12,
+    textDecorationLine: 'underline',
+  },
   
   // Filter button styles
   filterButtons: {
@@ -378,6 +414,43 @@ const globalStyles = StyleSheet.create({
   languageName: {
     fontSize: 16,
     color: theme.colors.textPrimary,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  description: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 30,
+    color: '#666',
+  },
+  features: {
+    marginBottom: 40,
+  },
+  feature: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  upgradeButton: {
+    backgroundColor: '#000',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  upgradeButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  cancelButtonText: {
+    color: '#000',
+    fontSize: 16,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
   },
 });
 

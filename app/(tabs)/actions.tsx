@@ -22,6 +22,10 @@ import globalStyles from '../styles/globalStyles';
 import ActionDetailsModal from '../components/ActionDetailsModal';
 import ActionItemModal from '../components/ActionItemModal';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUser } from '../context/UserContext';
+// Add at the top of your file
+
 
 export default function ActionsScreen() {
   const router = useRouter();
@@ -35,6 +39,8 @@ export default function ActionsScreen() {
   const [showSearch, setShowSearch] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
+const [bannerDismissed, setBannerDismissed] = useState(false);
   
   // For tracking action item interaction
   const pressStartTime = useRef<number>(0);
@@ -366,6 +372,37 @@ export default function ActionsScreen() {
       </TouchableOpacity>
     );
   }
+  const renderBanner = () => (
+    <View style={globalStyles.banner}>
+      <Text style={globalStyles.bannerText}>
+        Upgrade to Premium for unlimited features!
+      </Text>
+      <TouchableOpacity
+        style={globalStyles.bannerButton}
+        onPress={() => router.push('/(tabs)/upgrade')}
+      >
+        <Text style={globalStyles.bannerButtonText}>Upgrade Now</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={globalStyles.dismissButton}
+        onPress={() => {
+          AsyncStorage.setItem('bannerDismissed', 'true');
+          setShowBanner(false);
+        }}
+      >
+        <Text style={globalStyles.dismissButtonText}>Dismiss</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  useEffect(() => {
+    const checkBannerVisibility = async () => {
+      const isPremium = useUser().isPremium;
+      const dismissed = await AsyncStorage.getItem('bannerDismissed');
+      setShowBanner(!isPremium && !dismissed);
+    };
+    checkBannerVisibility();
+  }, []);
 
   useEffect(() => {
     loadActions();
@@ -450,6 +487,7 @@ export default function ActionsScreen() {
       </Pressable>
     </Modal>
   );
+
 
   return (
     <SafeAreaView style={globalStyles.container}>

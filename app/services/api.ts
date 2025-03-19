@@ -59,6 +59,57 @@ api.interceptors.response.use(
   }
 );
 
+// Get meeting audio
+getAudio: async (id: string): Promise<Blob> => {
+  try {
+    const response = await api.get(`/meetings/${id}/audio`, {
+      responseType: 'blob' // Important for binary data
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Failed to get audio for meeting ${id}:`, error);
+    throw error;
+  }
+}
+
+// In your meetingsApi.create method
+create: async (data: { title: string; audioUri: string; duration: number }) => {
+  try {
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('duration', data.duration.toString());
+    
+    // Append the audio file
+    const uriParts = data.audioUri.split('.');
+    const fileType = uriParts[uriParts.length - 1].toLowerCase();
+    const mimeType = `audio/${fileType === 'm4a' ? 'mp4' : fileType}`;
+    
+    formData.append('audio', {
+      uri: data.audioUri,
+      name: `recording.${fileType}`,
+      type: mimeType,
+    } as any);
+
+    const response = await api.post('/meetings', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    // Ensure audioUrl is set
+    if (response.data && !response.data.audioUrl) {
+      response.data.audioUrl = `${meetingsApi.getBaseUrl()}/meetings/${response.data.id}/audio`;
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Failed to create meeting:', error);
+    throw error;
+  }
+}
+
+
+
 export type ActionStatus = 'not_reviewed' | 'pending' | 'in_progress' | 'completed';
 
 export interface Meeting {
@@ -72,6 +123,7 @@ export interface Meeting {
   status: 'pending' | 'processing' | 'processed' | 'failed';
   error?: string;
   audioPath?: string;
+  audioUrl?: string;
   actions?: Action[];
 }
 
@@ -111,17 +163,6 @@ export const meetingsApi = {
     } catch (error) {
       console.error('Failed to load meetings:', error);
       throw error;
-    }
-  },
-
-  // Get single meeting
-  getById: async (id: string): Promise<Meeting | null> => {
-    try {
-      const response = await api.get<Meeting>(`/meetings/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to load meeting:', error);
-      return null;
     }
   },
 
@@ -169,6 +210,21 @@ export const meetingsApi = {
       throw error;
     }
   },
+
+  getBaseUrl: () => BASE_URL,
+
+  // Get single meeting
+  getById: async (id: string): Promise<Meeting | null> => {
+    try {
+      const response = await api.get<Meeting>(`/meetings/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to load meeting:', error);
+      return null;
+    }
+  },
+
+  
 
   // Get all archived meetings
   async getArchived(): Promise<ArchivedMeeting[]> {

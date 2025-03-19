@@ -13,6 +13,7 @@ import timeUtils from '../../utils/timeUtils';
 import transcriptAnalysis from '../../utils/transcriptAnalysis';
 import { StyleSheet } from 'react-native';
 import { Alert } from 'react-native';
+import AudioPlayer from '../../components/AudioPlayer';
 
 const MAX_VISIBLE_LINES = 5;
 
@@ -58,10 +59,10 @@ export default function MeetingDetails() {
     setProcessingTranscript(true);
     try {
       const extractedActions = transcriptAnalysis.extractActionItems(transcript);
-      
+
       // Create action items in the database
       const createdActions = await Promise.all(
-        extractedActions.map(action => 
+        extractedActions.map(action =>
           actionsApi.create({
             ...action,
             meetingId: id as string,
@@ -73,7 +74,7 @@ export default function MeetingDetails() {
           })
         )
       );
-      
+
       setActions(prevActions => [...prevActions, ...createdActions]);
     } catch (error) {
       console.error('Failed to process transcript:', error);
@@ -93,7 +94,7 @@ export default function MeetingDetails() {
       if (action.status === 'not_reviewed' && !action.hasBeenOpened) {
         // Update hasBeenOpened flag
         await actionsApi.update(action.id, { hasBeenOpened: true });
-        
+
         // Update local state
         setActions(prevActions =>
           prevActions.map(a =>
@@ -101,7 +102,7 @@ export default function MeetingDetails() {
           )
         );
       }
-      
+
       // Open the action modal
       setSelectedAction(action);
       setActionModalVisible(true);
@@ -109,6 +110,8 @@ export default function MeetingDetails() {
       console.error('Failed to mark action as opened:', error);
     }
   };
+
+
 
   const handleSaveAction = async (actionData: Partial<Action>) => {
     try {
@@ -133,10 +136,10 @@ export default function MeetingDetails() {
           status: actionData.status || 'pending',
           notes: actionData.notes,
         });
-        
+
         // Update the action list with the new action
         setActions(prevActions => [...prevActions, newAction]);
-        
+
         // Update the selectedAction to the newly created one
         // This allows us to keep the modal open with the correct data
         setSelectedAction(newAction);
@@ -159,7 +162,7 @@ export default function MeetingDetails() {
   const handleToggleStatus = async (action: Action) => {
     try {
       let newStatus = action.status;
-      
+
       // Handle different status transitions
       if (action.status === 'completed') {
         // Move from completed back to pending
@@ -168,21 +171,21 @@ export default function MeetingDetails() {
         // Move from not_reviewed to pending (Start Working)
         newStatus = 'pending';
       }
-      
+
       if (newStatus !== action.status) {
         // Update the action status and mark as opened
-        await actionsApi.update(action.id, { 
+        await actionsApi.update(action.id, {
           status: newStatus,
-          hasBeenOpened: true 
+          hasBeenOpened: true
         });
-        
+
         // Update the local state
         setActions(prevActions =>
           prevActions.map(a =>
             a.id === action.id ? { ...a, status: newStatus, hasBeenOpened: true } : a
           )
         );
-        
+
         // Show feedback when moving from not_reviewed to pending
         if (action.status === 'not_reviewed' && newStatus === 'pending') {
           Alert.alert('Success', 'Action item moved to Pending in Actions tab');
@@ -200,7 +203,7 @@ export default function MeetingDetails() {
     try {
       // Update the action status to 'pending' to move it to Actions tab
       await actionsApi.update(actionId, { status: 'pending' });
-      
+
       // Update the local state
       setActions(prevActions =>
         prevActions.map(a =>
@@ -217,11 +220,18 @@ export default function MeetingDetails() {
   };
 
   useEffect(() => {
+    if (meeting?.audioPath) {
+      console.log('Audio URL:', `${meetingsApi.getBaseUrl()}/meetings/${meeting.id}/audio`);
+      console.log('Meeting duration:', meeting.duration);
+    }
+  }, [meeting]);
+
+  useEffect(() => {
     const loadMeetingData = async () => {
       try {
         const meetingData = await meetingsApi.getById(id as string);
         setMeeting(meetingData);
-        
+
         // Load existing actions
         const existingActions = await actionsApi.getByMeeting(id as string);
         setActions(existingActions);
@@ -255,7 +265,7 @@ export default function MeetingDetails() {
 
   return (
     <>
-      <ScrollView 
+      <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
       >
@@ -295,7 +305,7 @@ export default function MeetingDetails() {
               </View>
             </DetailSection>
 
-            {meeting.transcript && (
+            {/* {meeting.transcript && (
               <DetailSection 
                 icon="description" 
                 label="Transcript"
@@ -326,6 +336,42 @@ export default function MeetingDetails() {
                   </TouchableOpacity>
                 </View>
               </DetailSection>
+            )} */}
+
+            {meeting.transcript && (
+              <DetailSection icon="description" label="Transcript">
+                {meeting.audioPath && (
+                  <AudioPlayer
+                    audioUrl={`${meetingsApi.getBaseUrl()}/meetings/${meeting.id}/audio`}
+                    duration={meeting.duration}
+                  />
+                )}
+                <View style={styles.transcriptContainer}>
+                  <View style={styles.textContainer}>
+                    <Text
+                      style={styles.transcriptText}
+                      numberOfLines={showFullTranscript ? undefined : 4}
+                    >
+                      {meeting.transcript}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.showMoreButton}
+                    onPress={toggleTranscript}
+                  >
+                    <View style={styles.showMoreContent}>
+                      <Text style={styles.showMoreText}>
+                        {showFullTranscript ? 'Show Less' : 'Show More'}
+                      </Text>
+                      <MaterialIcons
+                        name={showFullTranscript ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                        size={24}
+                        color="#0A84FF"
+                      />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </DetailSection>
             )}
 
             {(() => {
@@ -333,12 +379,12 @@ export default function MeetingDetails() {
               if (!highlights || !Array.isArray(highlights) || highlights.length === 0) {
                 return null;
               }
-              
+
               return (
                 <DetailSection icon="star" label="Highlights">
                   <View style={styles.listContainer}>
                     <View style={styles.textContainer}>
-                      <Text 
+                      <Text
                         style={styles.highlightsText}
                         numberOfLines={showAllHighlights ? undefined : 4}
                       >
@@ -348,7 +394,7 @@ export default function MeetingDetails() {
                       </Text>
                     </View>
                     {highlights.length > 4 && (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.showMoreButton}
                         onPress={toggleHighlights}
                       >
@@ -356,10 +402,10 @@ export default function MeetingDetails() {
                           <Text style={styles.showMoreText}>
                             {showAllHighlights ? 'Show Less' : 'Show More'}
                           </Text>
-                          <MaterialIcons 
-                            name={showAllHighlights ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} 
-                            size={24} 
-                            color="#0A84FF" 
+                          <MaterialIcons
+                            name={showAllHighlights ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                            size={24}
+                            color="#0A84FF"
                           />
                         </View>
                       </TouchableOpacity>
@@ -369,8 +415,8 @@ export default function MeetingDetails() {
               );
             })()}
 
-            <DetailSection 
-              icon="assignment" 
+            <DetailSection
+              icon="assignment"
               label="Action Items"
               count={actions.length}
               rightContent={
@@ -389,20 +435,20 @@ export default function MeetingDetails() {
                   // Split title into heading and content if it contains double newlines
                   let heading = action.title;
                   let content = '';
-                  
+
                   if (action.title.includes('\n\n')) {
                     const parts = action.title.split('\n\n');
                     heading = parts[0];
                     content = parts.slice(1).join('\n\n');
                   }
-                  
+
                   return (
                     <View key={action.id} style={styles.actionItem}>
                       <View style={styles.actionItemLeft}>
                         <TouchableOpacity
                           onPress={() => action.status !== 'completed' && handleToggleStatus(action)}
                           style={[
-                            styles.checkbox, 
+                            styles.checkbox,
                             action.status === 'not_reviewed' && styles.notReviewedCheckbox,
                             action.status === 'completed' && styles.completedCheckbox
                           ]}
@@ -411,16 +457,16 @@ export default function MeetingDetails() {
                           <MaterialIcons
                             name={
                               action.status === 'not_reviewed' ? 'hourglass-empty' :
-                              action.status === 'pending' ? 'hourglass-empty' :
-                              action.status === 'completed' ? 'check-circle' :
-                              'check-box-outline-blank'
+                                action.status === 'pending' ? 'hourglass-empty' :
+                                  action.status === 'completed' ? 'check-circle' :
+                                    'check-box-outline-blank'
                             }
                             size={24}
                             color={
                               action.status === 'not_reviewed' ? '#FF9500' :
-                              action.status === 'pending' ? '#FF9500' :
-                              action.status === 'completed' ? '#32D74B' :
-                              '#999999'
+                                action.status === 'pending' ? '#FF9500' :
+                                  action.status === 'completed' ? '#32D74B' :
+                                    '#999999'
                             }
                           />
                           {action.status === 'not_reviewed' && (
@@ -458,10 +504,10 @@ export default function MeetingDetails() {
                         style={styles.editButton}
                         disabled={action.status === 'completed'}
                       >
-                        <MaterialIcons 
-                          name="edit" 
-                          size={20} 
-                          color={action.status === 'completed' ? '#666666' : '#999999'} 
+                        <MaterialIcons
+                          name="edit"
+                          size={20}
+                          color={action.status === 'completed' ? '#666666' : '#999999'}
                         />
                       </TouchableOpacity>
                     </View>
@@ -476,10 +522,10 @@ export default function MeetingDetails() {
                       <Text style={styles.showMoreText}>
                         Show More (+{actions.length - 2})
                       </Text>
-                      <MaterialIcons 
+                      <MaterialIcons
                         name="keyboard-arrow-down"
-                        size={24} 
-                        color="#0A84FF" 
+                        size={24}
+                        color="#0A84FF"
                       />
                     </View>
                   </TouchableOpacity>
@@ -491,10 +537,10 @@ export default function MeetingDetails() {
                   >
                     <View style={styles.showMoreContent}>
                       <Text style={styles.showMoreText}>Show Less</Text>
-                      <MaterialIcons 
+                      <MaterialIcons
                         name="keyboard-arrow-up"
-                        size={24} 
-                        color="#0A84FF" 
+                        size={24}
+                        color="#0A84FF"
                       />
                     </View>
                   </TouchableOpacity>
