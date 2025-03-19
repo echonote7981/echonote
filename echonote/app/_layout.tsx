@@ -8,6 +8,7 @@ import { View, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { authenticateUser } from './utils/userUtils';
+import { UserProvider } from './context/UserContext';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import CustomSplashScreen from './components/SplashScreen';
@@ -62,12 +63,12 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <UserProvider>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="meeting" options={{ headerShown: false }} />
       </Stack>
-    </>
+    </UserProvider>
   );
 }

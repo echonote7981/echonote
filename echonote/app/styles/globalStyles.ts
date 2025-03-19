@@ -465,7 +465,28 @@ const globalStyles = StyleSheet.create({
   upgradeRestoreText: {
     color: theme.colors.textPrimary,
     fontSize: 16,
-  }
+  },
+  banner: {
+    backgroundColor: theme.colors.warning, // Highlight banner
+    padding: 12,
+    marginVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  
+  bannerText: {
+    color: theme.colors.textPrimary,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  
+  upgradeText: {
+    color: theme.colors.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 5,
+  },
+  
 });
 
 export default globalStyles;

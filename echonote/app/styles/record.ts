@@ -78,16 +78,13 @@ const recordStyles = StyleSheet.create({
   },
   // Banner styles for premium upgrade notification
   banner: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: theme.colors.warning || '#FF9800',
-    padding: 15,
-    borderRadius: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    backgroundColor: theme.colors.warning,
+    padding: 16,
+    marginTop: 10,
+    marginBottom: 15,
+    borderRadius: 8,
     alignItems: 'center',
+    width: '90%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -95,17 +92,36 @@ const recordStyles = StyleSheet.create({
     elevation: 5,
   },
   bannerText: {
-    color: '#fff',
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   upgradeText: {
-    color: '#fff',
+    color: theme.colors.primary,
+    fontSize: 16,
     fontWeight: 'bold',
-    fontSize: 14,
-    textDecorationLine: 'underline',
-    marginLeft: 10,
+    marginTop: 8,
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  // Add progress indicator for recording limit
+  recordingLimitContainer: {
+    width: '100%',
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 4,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  recordingLimitFill: {
+    height: '100%',
+    backgroundColor: theme.colors.primary,
+    borderRadius: 4,
   },
   // Styles for usage indicator
   usageContainer: {
@@ -128,7 +144,7 @@ const recordStyles = StyleSheet.create({
     height: '100%',
     backgroundColor: theme.colors.primary,
     borderRadius: 3,
-  }
+  },
 });
 
 export default recordStyles;
