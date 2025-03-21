@@ -486,6 +486,26 @@ const globalStyles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 5,
   },
+  audioPlayerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 8,
+    justifyContent: 'center'
+  },
+  audioText: {
+    fontSize: 16,
+    color: 'white',
+    marginLeft: 10,
+  },
+  transcript: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#333',
+    marginBottom: 20,
+  },
   
 });
 

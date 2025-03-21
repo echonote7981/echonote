@@ -101,6 +101,170 @@ router.get('/:id', asyncHandler(async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch meeting', error: error.message });
   }
 }));
+// Get meeting audio file
+router.get('/:id/audio', asyncHandler(async (req, res) => {
+  try {
+    console.log('Audio request received for meeting:', req.params.id);
+    console.log('Query parameters:', req.query);
+    
+    const meeting = await Meeting.findByPk(req.params.id);
+    
+    if (!meeting) {
+      console.error('Meeting not found:', req.params.id);
+      return res.status(404).json({ message: 'Meeting not found' });
+    }
+    
+    if (!meeting.audioUrl) {
+      console.error('No audio URL for meeting:', req.params.id);
+      return res.status(404).json({ message: 'Audio file not found for this meeting' });
+    }
+    
+    console.log('Database audioUrl path:', meeting.audioUrl);
+    
+    // Get absolute path and check if file exists
+    const absolutePath = meeting.audioUrl;
+    
+    try {
+      await fs.access(absolutePath, fs.constants.R_OK);
+      console.log('File exists and is readable');
+      
+      // Get file info
+      const stats = await fs.stat(absolutePath);
+      console.log('File size:', stats.size, 'bytes');
+      
+      // Determine correct content type based on file extension
+      const ext = path.extname(absolutePath).toLowerCase();
+      let contentType = 'audio/mpeg'; // default
+      
+      if (ext === '.m4a') contentType = 'audio/mp4';
+      else if (ext === '.wav') contentType = 'audio/wav';
+      else if (ext === '.mp3') contentType = 'audio/mpeg';
+      else if (ext === '.aac') contentType = 'audio/aac';
+      
+      console.log('Content type:', contentType);
+      
+      // Handle range requests for better streaming support
+      const range = req.headers.range;
+      
+      if (range) {
+        console.log('Range request received:', range);
+        const parts = range.replace(/bytes=/, '').split('-');
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : stats.size - 1;
+        const chunksize = (end - start) + 1;
+        
+        console.log('Streaming range:', { start, end, chunksize });
+        
+        res.writeHead(206, {
+          'Content-Range': `bytes ${start}-${end}/${stats.size}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': chunksize,
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*',
+        });
+        
+        const fileStream = require('fs').createReadStream(absolutePath, { start, end });
+        fileStream.on('error', (error) => {
+          console.error('Stream error:', error);
+          if (!res.headersSent) {
+            res.status(500).json({ message: 'Error streaming audio file' });
+          }
+        });
+        
+        fileStream.pipe(res);
+      } else {
+        // Set headers for full file streaming
+        res.writeHead(200, {
+          'Content-Type': contentType,
+          'Content-Length': stats.size,
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*',
+        });
+        
+        // Stream the file using standard fs (not promises)
+        const fileStream = require('fs').createReadStream(absolutePath);
+        
+        fileStream.on('error', (error) => {
+          console.error('Stream error:', error);
+          if (!res.headersSent) {
+            res.status(500).json({ message: 'Error streaming audio file' });
+          }
+        });
+        
+        fileStream.pipe(res);
+      }
+    } catch (error) {
+      console.error(`Audio file not found or not readable: ${absolutePath}`, error);
+      
+      // If the raw parameter is set or if this is a retry attempt, try to send a test audio file instead
+      if (req.query.raw === 'true' || req.query.fallback === 'true') {
+        console.log('Attempting to send test audio file');
+        try {
+          // Try multiple possible paths for the test audio file
+          const possiblePaths = [
+            path.join(__dirname, '../../uploads/test-audio.mp3'),
+            path.join(__dirname, '../../../uploads/test-audio.mp3'),
+            path.join(process.cwd(), 'backend/uploads/test-audio.mp3'),
+            path.join(process.cwd(), 'uploads/test-audio.mp3')
+          ];
+          
+          // Log all paths we're checking
+          console.log('Checking test audio file paths:', possiblePaths);
+          
+          // Find the first path that exists
+          let testAudioPath = null;
+          for (const p of possiblePaths) {
+            if (require('fs').existsSync(p)) {
+              testAudioPath = p;
+              console.log('Found test audio file at:', testAudioPath);
+              break;
+            }
+          }
+          
+          if (testAudioPath) {
+            // Get file stats for headers
+            const stats = require('fs').statSync(testAudioPath);
+            
+            // Set appropriate headers
+            res.writeHead(200, {
+              'Content-Type': 'audio/mpeg',
+              'Content-Length': stats.size,
+              'Accept-Ranges': 'bytes',
+              'Cache-Control': 'public, max-age=86400',
+              'Access-Control-Allow-Origin': '*',
+            });
+            
+            // Stream the test file
+            const testStream = require('fs').createReadStream(testAudioPath);
+            testStream.on('error', (streamError) => {
+              console.error('Error streaming test audio:', streamError);
+              if (!res.headersSent) {
+                res.status(500).json({ message: 'Error streaming test audio file' });
+              }
+            });
+            
+            return testStream.pipe(res);
+          } else {
+            console.error('Test audio file not found in any of the expected locations');
+          }
+        } catch (testError) {
+          console.error('Failed to serve test audio:', testError);
+        }
+      }
+      
+      return res.status(404).json({ 
+        message: 'Audio file not found on server', 
+        path: absolutePath,
+        error: error.message 
+      });
+    }
+  } catch (error) {
+    console.error('Failed to fetch audio:', error);
+    res.status(500).json({ message: 'Failed to fetch audio', error: error.message });
+  }
+}));
 
 // Create new meeting with audio upload
 router.post('/', uploadMulter.single('audio'), asyncHandler(async (req, res) => {
@@ -144,7 +308,7 @@ router.post('/', uploadMulter.single('audio'), asyncHandler(async (req, res) => 
       title: req.body.title,
       date: new Date(),
       duration: parseInt(req.body.duration),
-      audioPath: req.file.path,
+      audioUrl: req.file.path,
       status: 'processing'
     });
 
@@ -152,7 +316,7 @@ router.post('/', uploadMulter.single('audio'), asyncHandler(async (req, res) => 
       title: req.body.title,
       date: new Date(),
       duration: parseInt(req.body.duration),
-      audioPath: req.file.path,
+      audioUrl: req.file.path,
       status: 'processing',
     });
 

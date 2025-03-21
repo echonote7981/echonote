@@ -18,6 +18,27 @@ const audioStyles = StyleSheet.create({
     color: '#FFFFFF',
     marginTop: 8,
   },
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  errorText: {
+    color: '#FF453A',
+    marginVertical: 8,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#0A84FF',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 5,
+    marginTop: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -52,4 +73,3 @@ const audioStyles = StyleSheet.create({
 });
 
 export default audioStyles;
-

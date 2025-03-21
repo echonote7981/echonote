@@ -21,3 +21,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export const useUser = () => useContext(UserContext);
+
+// Add default export to fix routing warning
+export default UserProvider;

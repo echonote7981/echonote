@@ -65,8 +65,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   contentRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'flex-start',
+    width: '100%',
   },
   icon: {
     marginRight: 12,

@@ -10,14 +10,14 @@ const getLocalhost = () => {
   }
   if (Constants.isDevice) {
     // Use your computer's local IP address when testing on a physical device
-    return '192.168.1.40'; // Your local IP address
+    return '192.168.1.240'; // Your local IP address
   }
   return Constants.expoConfig?.hostUri?.split(':')[0] || 'localhost';
 };
 
 const localhost = getLocalhost();
 
-const BASE_URL = __DEV__ 
+const BASE_URL = __DEV__
   ? `http://${localhost}:3000/api`
   : 'https://your-production-url.com/api';
 
@@ -78,12 +78,12 @@ create: async (data: { title: string; audioUri: string; duration: number }) => {
     const formData = new FormData();
     formData.append('title', data.title);
     formData.append('duration', data.duration.toString());
-    
+
     // Append the audio file
     const uriParts = data.audioUri.split('.');
     const fileType = uriParts[uriParts.length - 1].toLowerCase();
     const mimeType = `audio/${fileType === 'm4a' ? 'mp4' : fileType}`;
-    
+
     formData.append('audio', {
       uri: data.audioUri,
       name: `recording.${fileType}`,
@@ -217,14 +217,87 @@ export const meetingsApi = {
   getById: async (id: string): Promise<Meeting | null> => {
     try {
       const response = await api.get<Meeting>(`/meetings/${id}`);
-      return response.data;
+      const meeting = response.data;
+      
+      // Ensure audioUrl is properly formatted
+      if (meeting) {
+        meeting.audioUrl = meetingsApi.normalizeAudioUrl(meeting.audioUrl, meeting.id);
+        console.log('Normalized audio URL:', meeting.audioUrl);
+      }
+      
+      return meeting;
     } catch (error) {
       console.error('Failed to load meeting:', error);
       return null;
     }
   },
 
-  
+  // Get meeting audio
+  getAudio: async (id: string): Promise<Blob> => {
+    try {
+      const response = await api.get(`/meetings/${id}/audio`, {
+        responseType: 'blob' // Important for binary data
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to get audio for meeting ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Get audio URL for a meeting
+  getAudioUrl: (meetingId: string): string => {
+    return `${BASE_URL}/meetings/${meetingId}/audio`;
+  },
+
+  // Normalize audio URL to ensure it's complete
+  normalizeAudioUrl: (url: string | undefined, meetingId?: string, attemptCount: number = 0): string | undefined => {
+    if (!url) {
+      if (meetingId) {
+        // If no URL but we have meeting ID, generate standard URL with cache-busting
+        const timestamp = Date.now();
+        const fallbackParam = attemptCount > 0 ? '&fallback=true' : '';
+        return `${BASE_URL}/meetings/${meetingId}/audio?t=${timestamp}${fallbackParam}`;
+      }
+      return undefined;
+    }
+    
+    // Add cache-busting timestamp to prevent caching issues
+    const addTimestamp = (u: string): string => {
+      const hasParams = u.includes('?');
+      return `${u}${hasParams ? '&' : '?'}t=${Date.now()}`;
+    };
+    
+    // If URL is already absolute (http, https, file), add timestamp but otherwise return as is
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('file://')) {
+      return addTimestamp(url);
+    }
+    
+    // Handle local file paths from database (like /Users/...)    
+    if (url.startsWith('/Users/') || url.startsWith('/var/') || url.indexOf('/uploads/audio/') !== -1) {
+      console.log('Local file path detected, using meeting ID endpoint instead:', url);
+      if (meetingId) {
+        const timestamp = Date.now();
+        const fallbackParam = attemptCount > 0 ? '&fallback=true' : '';
+        return `${BASE_URL}/meetings/${meetingId}/audio?t=${timestamp}${fallbackParam}`;
+      }
+    }
+    
+    // If URL is relative to API, make it absolute
+    if (url.startsWith('/')) {
+      return addTimestamp(`${BASE_URL}${url}`);
+    }
+    
+    // If URL is just a meeting ID or path fragment
+    if (meetingId) {
+      const timestamp = Date.now();
+      const fallbackParam = attemptCount > 0 ? '&fallback=true' : '';
+      return `${BASE_URL}/meetings/${meetingId}/audio?t=${timestamp}${fallbackParam}`;
+    }
+    
+    console.warn('Unable to normalize audio URL:', url);
+    return addTimestamp(url);
+  },
 
   // Get all archived meetings
   async getArchived(): Promise<ArchivedMeeting[]> {
@@ -270,7 +343,7 @@ export const meetingsApi = {
 export const actionsApi = {
   // Utility to get Base URL for other components to use
   getBaseUrl: () => BASE_URL,
-  
+
   // Get all actions
   getAll: async (filters?: { status?: 'pending' | 'completed' }): Promise<Action[]> => {
     try {
@@ -278,7 +351,7 @@ export const actionsApi = {
       if (filters?.status) {
         params.append('status', filters.status);
       }
-      
+
       const response = await api.get(`/actions?${params.toString()}`);
       return response.data;
     } catch (error) {
@@ -286,7 +359,7 @@ export const actionsApi = {
       throw new Error('Failed to get actions');
     }
   },
-  
+
   // Get archived actions
   getArchived: async (): Promise<Action[]> => {
     try {
@@ -300,26 +373,26 @@ export const actionsApi = {
         return response.data;
       } catch (apiError) {
         console.log('⚠️ API endpoint for archived actions not available, falling back to client filtering');
-        
+
         // Fallback: Get all actions and filter on client side
         console.log('🔍 Fetching all actions to filter...');
         const allActions = await actionsApi.getAll();
         console.log(`ℹ️ Total actions retrieved: ${allActions.length}`);
-        
+
         // Check for actions explicitly marked as archived
         let archivedActions = allActions.filter(action => action.archived === true);
-        
+
         // If no explicitly archived actions found, also include completed actions that should be archived
         if (archivedActions.length === 0) {
           console.log('⚠️ No actions with archived=true found, checking for completed actions...');
-          
+
           // Find completed actions that should be considered archived
           // Include ALL completed tasks regardless of archived flag (to match archived.tsx behavior)
-          const completedActions = allActions.filter(action => 
+          const completedActions = allActions.filter(action =>
             action.status === 'completed'
             // Removed !action.archived condition to show all completed tasks
           );
-          
+
           if (completedActions.length > 0) {
             console.log(`🔢 Found ${completedActions.length} completed actions that could be considered archived`);
             // Mark these as archived for UI display
@@ -329,14 +402,14 @@ export const actionsApi = {
             }))];
           }
         }
-        
+
         if (archivedActions.length > 0) {
           console.log(`✅ Found ${archivedActions.length} archived actions`);
           archivedActions.forEach(action => {
             console.log(`📄 Archived action: ${action.id} - ${action.title} - Status: ${action.status}`);
           });
         }
-        
+
         return archivedActions;
       }
     } catch (error) {
@@ -382,18 +455,18 @@ export const actionsApi = {
   update: async (id: string, updates: Partial<Action>): Promise<Action> => {
     try {
       console.log(`💾 Updating action ${id} with:`, updates);
-      
+
       // If we're archiving, ensure the status is set to completed
       if (updates.archived === true && !updates.status) {
         console.log('⚙️ Setting status to completed for archived action');
         updates.status = 'completed';
       }
-      
+
       // If we're archiving, ensure completedAt is set
       if (updates.archived === true && !updates.completedAt) {
         updates.completedAt = new Date().toISOString();
       }
-      
+
       const response = await api.put(`/actions/${id}`, updates);
       console.log(`✅ Action ${id} updated successfully:`, response.data);
       return response.data;
@@ -438,7 +511,7 @@ export const actionsApi = {
   cleanup: async (action: 'delete' | 'complete' | 'archive', meetingId?: string): Promise<{ message: string }> => {
     try {
       console.log(`🔎 Cleaning up actions with operation: ${action}, meetingId: ${meetingId || 'all'}`);
-      
+
       // For archive operation, ensure we're setting all required fields
       if (action === 'archive') {
         // If the archive endpoint doesn't exist or fails, manually archive each item
@@ -448,28 +521,28 @@ export const actionsApi = {
           return response.data;
         } catch (apiError) {
           console.log('⚠️ Bulk archive API failed, falling back to manual archiving');
-          
+
           // Get all actions that should be archived (filter by meetingId if provided)
           const allActions = await actionsApi.getAll();
-          const actionsToArchive = meetingId 
-            ? allActions.filter(a => a.meetingId === meetingId) 
+          const actionsToArchive = meetingId
+            ? allActions.filter(a => a.meetingId === meetingId)
             : allActions.filter(a => a.status === 'completed' && !a.archived);
-            
+
           console.log(`📄 Manually archiving ${actionsToArchive.length} actions`);
-          
+
           // Archive each action
           for (const action of actionsToArchive) {
-            await actionsApi.update(action.id, { 
-              archived: true, 
+            await actionsApi.update(action.id, {
+              archived: true,
               status: 'completed',
               completedAt: new Date().toISOString()
             });
           }
-          
+
           return { message: `Manually archived ${actionsToArchive.length} actions` };
         }
       }
-      
+
       const response = await api.post('/actions/cleanup', { action, meetingId });
       return response.data;
     } catch (error) {
@@ -488,7 +561,18 @@ export const actionsApi = {
       throw new Error('Failed to batch update actions');
     }
   },
+  // Add to your api.ts file
+  getUserStats: async (): Promise<{ totalRecordedTime: number; remainingFreeTime: number }> => {
+    try {
+      const response = await api.get('/users/stats');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get user stats:', error);
+      return { totalRecordedTime: 0, remainingFreeTime: 14400 }; // Default to 4 hours (in seconds)
+    }
+  },
 };
+
 
 export default {
   meetings: meetingsApi,

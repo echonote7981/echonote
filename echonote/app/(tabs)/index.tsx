@@ -3,7 +3,6 @@ import {
   View,
   TextInput,
   TouchableOpacity,
-  Platform,
   Alert,
   Text,
   TouchableWithoutFeedback,

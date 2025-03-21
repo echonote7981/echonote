@@ -452,6 +452,23 @@ const globalStyles = StyleSheet.create({
     textAlign: 'center',
     textDecorationLine: 'underline',
   },
+  banner1: {
+    padding: 10,
+    backgroundColor: theme.colors.warning,
+    borderRadius: 5,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  bannerText1: {
+    color: theme.colors.textPrimary,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  upgradeText: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
 });
 
 export default globalStyles;

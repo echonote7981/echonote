@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const { sequelize } = require('./models');
 const meetingsRouter = require('./routes/meetings');
 const actionsRouter = require('./routes/actions');
+const usersRouter = require('./routes/users');
 const errorHandler = require('./middleware/errorHandler');
 const path = require('path');
 
@@ -20,6 +21,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Routes
 app.use('/api/meetings', meetingsRouter);
 app.use('/api/actions', actionsRouter);
+app.use('/api/users', usersRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

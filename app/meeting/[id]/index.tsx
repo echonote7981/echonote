@@ -220,8 +220,12 @@ export default function MeetingDetails() {
   };
 
   useEffect(() => {
-    if (meeting?.audioPath) {
-      console.log('Audio URL:', `${meetingsApi.getBaseUrl()}/meetings/${meeting.id}/audio`);
+    if (meeting?.id) {
+      // Ensure meeting has a valid audioUrl
+      if (!meeting.audioUrl && meeting.id) {
+        meeting.audioUrl = `${meetingsApi.getBaseUrl()}/meetings/${meeting.id}/audio`;
+      }
+      console.log('Audio URL:', meeting.audioUrl);
       console.log('Meeting duration:', meeting.duration);
     }
   }, [meeting]);
@@ -305,55 +309,25 @@ export default function MeetingDetails() {
               </View>
             </DetailSection>
 
-            {/* {meeting.transcript && (
-              <DetailSection 
-                icon="description" 
-                label="Transcript"
-              >
-                <View style={styles.transcriptContainer}>
-                  <View style={styles.textContainer}>
-                    <Text 
-                      style={styles.transcriptText}
-                      numberOfLines={showFullTranscript ? undefined : 4}
-                    >
-                      {meeting.transcript}
-                    </Text>
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.showMoreButton}
-                    onPress={toggleTranscript}
-                  >
-                    <View style={styles.showMoreContent}>
-                      <Text style={styles.showMoreText}>
-                        {showFullTranscript ? 'Show Less' : 'Show More'}
-                      </Text>
-                      <MaterialIcons 
-                        name={showFullTranscript ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} 
-                        size={24} 
-                        color="#0A84FF" 
-                      />
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              </DetailSection>
-            )} */}
-
             {meeting.transcript && (
               <DetailSection icon="description" label="Transcript">
-                {meeting.audioPath && (
+                {meeting.id && (
                   <AudioPlayer
-                    audioUrl={`${meetingsApi.getBaseUrl()}/meetings/${meeting.id}/audio`}
+                    audioUrl={meeting.audioUrl || `${meetingsApi.getBaseUrl()}/meetings/${meeting.id}/audio`}
                     duration={meeting.duration}
+                    meetingId={meeting.id}
                   />
                 )}
                 <View style={styles.transcriptContainer}>
                   <View style={styles.textContainer}>
-                    <Text
-                      style={styles.transcriptText}
+                    <TranscriptText
+                      text={meeting.transcript || ''}
+                      style={{
+                        ...styles.transcriptText,
+                        height: showFullTranscript ? undefined : 80,
+                      }}
                       numberOfLines={showFullTranscript ? undefined : 4}
-                    >
-                      {meeting.transcript}
-                    </Text>
+                    />
                   </View>
                   <TouchableOpacity
                     style={styles.showMoreButton}
@@ -700,9 +674,12 @@ const styles = StyleSheet.create({
   },
   transcriptContainer: {
     width: '100%',
+    paddingHorizontal: 0,
   },
   textContainer: {
     width: '100%',
+    overflow: 'hidden',
+    flexDirection: 'row',
   },
   transcriptText: {
     fontSize: 16,

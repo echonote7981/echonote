@@ -36,7 +36,8 @@
       "expo-av",
       "expo-file-system",
       "expo-calendar",
-      "expo-font"
+      "expo-font",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

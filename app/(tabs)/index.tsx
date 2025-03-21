@@ -1,21 +1,23 @@
 import { useEffect, useState, useRef } from 'react';
-import { 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
-  Platform, 
-  Alert, 
-  Text, 
+import { useUser } from '../context/UserContext';
+import BannerMessage from '../components/BannerMessage';
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  Text,
   TouchableWithoutFeedback,
   Keyboard
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
-import { meetingsApi } from '../services/api';
+import { meetingsApi, actionsApi } from '../services/api';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import recordStyles from '../styles/record';
 import { AppState } from 'react-native';
+import globalStyles from '../styles/globalStyles';
 
 const formatTime = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
@@ -32,6 +34,38 @@ export default function RecordScreen() {
   const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const router = useRouter();
+  // Inside your RecordScreen component
+  const { isPremium } = useUser();
+  const isGuestUser = !isPremium;
+  const [showUpgradeBanner, setShowUpgradeBanner] = useState(false);
+  const [remainingFreeTime, setRemainingFreeTime] = useState(14400); // 4 hours in seconds
+  const MAX_FREE_RECORDING_TIME = 14400; // 4 hours in seconds
+
+  // Banner will be rendered in the return statement
+
+  useEffect(() => {
+    if (isGuestUser) {
+      const fetchUserStats = async () => {
+        try {
+          // Get user stats - this will use the default values if the API fails
+          const stats = await actionsApi.getUserStats();
+          console.log('User stats loaded:', stats);
+          setRemainingFreeTime(stats.remainingFreeTime);
+
+          // For testing purposes, always show the banner for guest users
+          // In production, you might want to use: stats.remainingFreeTime < 300
+          setShowUpgradeBanner(true);
+        } catch (error) {
+          console.error('Failed to load user stats:', error);
+          // Keep default values
+          setRemainingFreeTime(MAX_FREE_RECORDING_TIME);
+        }
+      };
+
+      fetchUserStats();
+    }
+  }, [isGuestUser, MAX_FREE_RECORDING_TIME]);
+
 
   // Initialize audio session
   useEffect(() => {
@@ -215,7 +249,7 @@ export default function RecordScreen() {
       try {
         // Stop the recording
         await currentRecording.stopAndUnloadAsync();
-        
+
         // Upload the recording
         await meetingsApi.create({
           title,
@@ -228,7 +262,7 @@ export default function RecordScreen() {
         router.push('/(tabs)/meetings');
       } catch (uploadError) {
         console.error('Failed to process or upload recording:', uploadError);
-        
+
         // Keep the state but show error
         Alert.alert(
           'Upload Failed',
@@ -251,6 +285,12 @@ export default function RecordScreen() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={recordStyles.container}>
+        {isGuestUser && showUpgradeBanner && (
+          <BannerMessage
+            remainingMinutes={Math.floor(remainingFreeTime / 60)}
+            onUpgrade={() => router.push('/upgrade' as any)}
+          />
+        )}
         <View style={recordStyles.inputContainer}>
           <TextInput
             style={recordStyles.input}
@@ -280,7 +320,7 @@ export default function RecordScreen() {
               color="white"
             />
           </TouchableOpacity>
-          
+
           {recording && (
             <TouchableOpacity
               style={[recordStyles.pauseButton, isPaused && recordStyles.resumeButton]}
@@ -295,12 +335,12 @@ export default function RecordScreen() {
             </TouchableOpacity>
           )}
         </View>
-
         {isProcessing && (
           <View style={recordStyles.processingContainer}>
             <Text style={recordStyles.processingText}>Processing recording...</Text>
           </View>
         )}
+
       </View>
     </TouchableWithoutFeedback>
   );
