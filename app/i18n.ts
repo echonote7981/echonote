@@ -1,7 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next'; // ✅ Required
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as RNLocalize from 'react-native-localize';
+import * as Localization from 'expo-localization';
 
 // Import translation files
 import en from './locales/en.json';
@@ -45,18 +45,18 @@ const getLanguage = async () => {
 
   // Try to get user's device locale with a safe fallback
   try {
-    // Use dynamic import to avoid the TurboModuleRegistry error
-    const RNLocalize = require('react-native-localize');
+    // Get user's device locale using expo-localization
+    const locale = Localization.locale;
+    const languageCode = locale.split('-')[0]; // Get the language part (e.g., 'en' from 'en-US')
     
-    // Get user's device locales
-    const deviceLocales = RNLocalize.getLocales();
+    // Check if this language is in our resources
+    if (Object.keys(resources).includes(languageCode)) {
+      return languageCode;
+    }
     
-    // Find the first locale that matches our available languages
-    for (const locale of deviceLocales) {
-      const languageCode = locale.languageCode;
-      if (Object.keys(resources).includes(languageCode)) {
-        return languageCode;
-      }
+    // For languages with region codes like zh-CN, zh-TW
+    if (Object.keys(resources).includes(locale)) {
+      return locale;
     }
   } catch (e) {
     console.warn('Failed to get device locale, falling back to English', e);

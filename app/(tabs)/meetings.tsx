@@ -24,9 +24,8 @@ export default function MeetingsScreen() {
 
   const loadMeetings = async () => {
     try {
-      console.log('Loading meetings...');
+      // Removed excessive logging
       const data = await meetingsApi.getAll();
-      console.log('Meetings loaded:', data);
       setMeetings(data);
       return data;
     } catch (error) {
@@ -103,11 +102,9 @@ export default function MeetingsScreen() {
       const processingMeetings = meetings.filter(meeting => meeting.status === 'processing');
       
       if (processingMeetings.length === 0) {
-        console.log('No processing meetings to check');
+        // Removed excessive logging
         return;
       }
-      
-      console.log(`Checking status for ${processingMeetings.length} processing meetings`);
       
       let updatedAny = false;
       
@@ -115,7 +112,7 @@ export default function MeetingsScreen() {
         const updatedMeeting = await checkMeetingStatus(meeting.id);
         
         if (updatedMeeting && updatedMeeting.status !== 'processing') {
-          console.log(`Meeting ${meeting.id} status changed from processing to ${updatedMeeting.status}`);
+          // Only log important status changes
           updatedAny = true;
         }
       }
