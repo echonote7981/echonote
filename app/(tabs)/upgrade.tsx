@@ -1,27 +1,76 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Switch, Alert, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUser } from '../context/UserContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import globalStyles from '../styles/globalStyles';
 import TermsModal from '../components/TermsModal';
 import PrivacyPolicyModal from '../components/PrivacyPolicyModal';
+import { usePurchases } from '../services/purchases/usePurchases';
 
 export default function UpgradeScreen() {
   const router = useRouter();
   const { setIsPremium, hasAcceptedTerms, setHasAcceptedTerms, hasAcceptedPrivacyPolicy, setHasAcceptedPrivacyPolicy } = useUser();
   
+  // Use our purchases hook
+  const { 
+    products, 
+    isPurchasing, 
+    isLoading, 
+    error, 
+    purchaseMonthlySubscription, 
+    purchaseYearlySubscription, 
+    refreshPurchases 
+  } = usePurchases();
+  
   // State for modals
   const [termsModalVisible, setTermsModalVisible] = useState(false);
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   const [acceptedBothPolicies, setAcceptedBothPolicies] = useState(hasAcceptedTerms && hasAcceptedPrivacyPolicy);
+  
+  // State for subscription prices
+  const [monthlyPrice, setMonthlyPrice] = useState('$12.99');
+  const [yearlyPrice, setYearlyPrice] = useState('$89.99');
+  const [yearSavings, setYearSavings] = useState('$65.89');
 
   // Update acceptedBothPolicies when either policy acceptance changes
-  React.useEffect(() => {
+  useEffect(() => {
     setAcceptedBothPolicies(hasAcceptedTerms && hasAcceptedPrivacyPolicy);
   }, [hasAcceptedTerms, hasAcceptedPrivacyPolicy]);
+  
+  // Update prices from IAP products when they load
+  useEffect(() => {
+    if (products && products.length > 0) {
+      // Find monthly and yearly subscription products
+      const monthlyProduct = products.find(p => 
+        p.productId === (Platform.OS === 'ios' ? 'com.echonotes.monthly' : 'com.echonotes.monthly'));
+      
+      const yearlyProduct = products.find(p => 
+        p.productId === (Platform.OS === 'ios' ? 'com.echonotes.yearly' : 'com.echonotes.yearly'));
+      
+      // Update prices if products are found
+      if (monthlyProduct) {
+        setMonthlyPrice(monthlyProduct.localizedPrice || '$12.99');
+      }
+      
+      if (yearlyProduct) {
+        setYearlyPrice(yearlyProduct.localizedPrice || '$89.99');
+        
+        // Calculate savings
+        if (monthlyProduct && yearlyProduct) {
+          const monthlyCost = parseFloat(monthlyProduct.price) * 12;
+          const yearlyCost = parseFloat(yearlyProduct.price);
+          const savings = monthlyCost - yearlyCost;
+          
+          if (!isNaN(savings) && savings > 0) {
+            setYearSavings(`$${savings.toFixed(2)}`);
+          }
+        }
+      }
+    }
+  }, [products]);
 
-  const handleUpgrade = () => {
+  const handleMonthlyUpgrade = async () => {
     if (!acceptedBothPolicies) {
       Alert.alert(
         "Terms & Privacy Policy",
@@ -31,17 +80,46 @@ export default function UpgradeScreen() {
       return;
     }
     
-    setIsPremium(true);
-    Alert.alert(
-      "Upgrade Successful",
-      "You have successfully upgraded to Premium!",
-      [{ text: "OK", onPress: () => router.back() }]
-    );
+    try {
+      await purchaseMonthlySubscription();
+    } catch (error) {
+      console.error('Error during monthly subscription purchase:', error);
+    }
+  };
+  
+  const handleYearlyUpgrade = async () => {
+    if (!acceptedBothPolicies) {
+      Alert.alert(
+        "Terms & Privacy Policy",
+        "You must accept both the Terms & Conditions and Privacy Policy to continue.",
+        [{ text: "OK", style: "default" }]
+      );
+      return;
+    }
+    
+    try {
+      await purchaseYearlySubscription();
+    } catch (error) {
+      console.error('Error during yearly subscription purchase:', error);
+    }
   };
 
-  const handleRestore = () => {
-    // Implement restore purchases functionality here
-    console.log('Restore purchases');
+  const handleRestore = async () => {
+    try {
+      await refreshPurchases();
+      Alert.alert(
+        "Purchases Restored",
+        "Your purchases have been restored.",
+        [{ text: "OK", style: "default" }]
+      );
+    } catch (error) {
+      console.error('Error restoring purchases:', error);
+      Alert.alert(
+        "Restore Failed",
+        "Failed to restore purchases. Please try again later.",
+        [{ text: "OK", style: "default" }]
+      );
+    }
   };
 
   return (
@@ -112,14 +190,41 @@ export default function UpgradeScreen() {
         </View>
 
         {/* Pricing options */}
-        <TouchableOpacity style={styles.pricingButton} onPress={handleUpgrade}>
-          <Text style={styles.pricingButtonText}>$12.99 billed monthly</Text>
-        </TouchableOpacity>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <Text style={styles.loadingText}>Loading subscription options...</Text>
+          </View>
+        ) : (
+          <>
+            <TouchableOpacity 
+              style={[styles.pricingButton, isPurchasing && styles.disabledButton]} 
+              onPress={handleMonthlyUpgrade}
+              disabled={isPurchasing}
+            >
+              {isPurchasing ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.pricingButtonText}>{monthlyPrice} billed monthly</Text>
+              )}
+            </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.pricingButton, styles.annualButton]} onPress={handleUpgrade}>
-          <Text style={styles.pricingButtonText}>$89.99 billed annually</Text>
-          <Text style={styles.savingsText}>(SAVE $65.89)</Text>
-        </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.pricingButton, styles.annualButton, isPurchasing && styles.disabledButton]} 
+              onPress={handleYearlyUpgrade}
+              disabled={isPurchasing}
+            >
+              {isPurchasing ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Text style={styles.pricingButtonText}>{yearlyPrice} billed annually</Text>
+                  <Text style={styles.savingsText}>(SAVE {yearSavings})</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </>
+        )}
 
         <TouchableOpacity onPress={handleRestore}>
           <Text style={styles.restoreText}>Restore purchases</Text>
@@ -203,6 +308,19 @@ export default function UpgradeScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  disabledButton: {
+    opacity: 0.7,
+  },
   termsContainer: {
     marginTop: 20,
     marginBottom: 20,
