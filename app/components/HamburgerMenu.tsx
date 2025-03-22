@@ -98,8 +98,10 @@ export default function HamburgerMenu() {
   };
   
   const handleUpgrade = () => {
-    setIsPremium(true);
+    // Close the upgrade modal
     setUpgradeModalVisible(false);
+    // Navigate to the upgrade page
+    router.push('/(tabs)/upgrade');
   };
   
   return (
