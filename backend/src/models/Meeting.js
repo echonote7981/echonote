@@ -37,6 +37,14 @@ module.exports = (sequelize) => {
       type: DataTypes.JSON,
       allowNull: true,
       defaultValue: []
+    },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'Users',
+        key: 'id'
+      }
     }
   }, {
     timestamps: true
@@ -46,6 +54,11 @@ module.exports = (sequelize) => {
     Meeting.hasMany(models.Action, {
       foreignKey: 'meetingId',
       as: 'actions'
+    });
+    
+    Meeting.belongsTo(models.User, {
+      foreignKey: 'userId',
+      as: 'user'
     });
   };
 

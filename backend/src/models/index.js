@@ -41,12 +41,14 @@ sequelize
 const Meeting = require('./Meeting')(sequelize);
 const Action = require('./Action')(sequelize);
 const ArchivedMeeting = require('./ArchivedMeeting')(sequelize);
+const User = require('./User')(sequelize);
 
 // Initialize models
 const models = {
   Meeting,
   Action,
-  ArchivedMeeting
+  ArchivedMeeting,
+  User
 };
 
 // Run associations if they exist

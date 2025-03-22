@@ -1,17 +1,42 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUser } from '../context/UserContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import globalStyles from '../styles/globalStyles';
+import TermsModal from '../components/TermsModal';
+import PrivacyPolicyModal from '../components/PrivacyPolicyModal';
 
 export default function UpgradeScreen() {
   const router = useRouter();
-  const { setIsPremium } = useUser();
+  const { setIsPremium, hasAcceptedTerms, setHasAcceptedTerms, hasAcceptedPrivacyPolicy, setHasAcceptedPrivacyPolicy } = useUser();
+  
+  // State for modals
+  const [termsModalVisible, setTermsModalVisible] = useState(false);
+  const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
+  const [acceptedBothPolicies, setAcceptedBothPolicies] = useState(hasAcceptedTerms && hasAcceptedPrivacyPolicy);
+
+  // Update acceptedBothPolicies when either policy acceptance changes
+  React.useEffect(() => {
+    setAcceptedBothPolicies(hasAcceptedTerms && hasAcceptedPrivacyPolicy);
+  }, [hasAcceptedTerms, hasAcceptedPrivacyPolicy]);
 
   const handleUpgrade = () => {
+    if (!acceptedBothPolicies) {
+      Alert.alert(
+        "Terms & Privacy Policy",
+        "You must accept both the Terms & Conditions and Privacy Policy to continue.",
+        [{ text: "OK", style: "default" }]
+      );
+      return;
+    }
+    
     setIsPremium(true);
-    router.back();
+    Alert.alert(
+      "Upgrade Successful",
+      "You have successfully upgraded to Premium!",
+      [{ text: "OK", onPress: () => router.back() }]
+    );
   };
 
   const handleRestore = () => {
@@ -100,6 +125,35 @@ export default function UpgradeScreen() {
           <Text style={styles.restoreText}>Restore purchases</Text>
         </TouchableOpacity>
 
+        {/* Terms and Privacy Policy Section */}
+        <View style={styles.termsContainer}>
+          <View style={styles.termsRow}>
+            <Text style={styles.termsText}>
+              I accept the {' '}
+              <Text style={styles.termsLink} onPress={() => setTermsModalVisible(true)}>
+                Terms & Conditions
+              </Text>
+              {' '}and{' '}
+              <Text style={styles.termsLink} onPress={() => setPrivacyModalVisible(true)}>
+                Privacy Policy
+              </Text>
+            </Text>
+            <Switch
+              value={acceptedBothPolicies}
+              onValueChange={(value) => {
+                if (value) {
+                  setTermsModalVisible(true);
+                } else {
+                  setHasAcceptedTerms(false);
+                  setHasAcceptedPrivacyPolicy(false);
+                }
+              }}
+              trackColor={{ false: '#767577', true: '#007AFF' }}
+              thumbColor={acceptedBothPolicies ? '#FFFFFF' : '#f4f3f4'}
+            />
+          </View>
+        </View>
+
         <View style={styles.footerContainer}>
           <Text style={styles.footerText}>
             Subscriptions will be charged via your iTunes account.
@@ -115,11 +169,60 @@ export default function UpgradeScreen() {
           </Text>
         </View>
       </View>
+
+      {/* Terms Modal */}
+      <TermsModal 
+        visible={termsModalVisible} 
+        onClose={() => setTermsModalVisible(false)}
+        onAccept={() => {
+          setHasAcceptedTerms(true);
+          // If privacy policy is already accepted, close this modal
+          // Otherwise, show privacy policy modal next
+          if (hasAcceptedPrivacyPolicy) {
+            setTermsModalVisible(false);
+          } else {
+            setTermsModalVisible(false);
+            setPrivacyModalVisible(true);
+          }
+        }}
+        showAcceptButton={true}
+      />
+      
+      {/* Privacy Policy Modal */}
+      <PrivacyPolicyModal 
+        visible={privacyModalVisible} 
+        onClose={() => setPrivacyModalVisible(false)}
+        onAccept={() => {
+          setHasAcceptedPrivacyPolicy(true);
+          setPrivacyModalVisible(false);
+        }}
+        showAcceptButton={true}
+      />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  termsContainer: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  termsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  termsText: {
+    color: '#8E8E93',
+    fontSize: 14,
+    flex: 1,
+    marginRight: 10,
+  },
+  termsLink: {
+    color: '#007AFF',
+    textDecorationLine: 'underline',
+  },
   container: {
     flex: 1,
     backgroundColor: '#121212',

@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '../context/UserContext';
 import theme from '../styles/theme';
+import TermsModal from './TermsModal';
+import PrivacyPolicyModal from './PrivacyPolicyModal';
 
 interface MenuOption {
   title: string;
@@ -237,93 +239,17 @@ export default function HamburgerMenu() {
         </View>
       </Modal>
       
-      {/* Terms Modal - Placeholder content */}
-      <Modal
-        visible={termsModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setTermsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Terms and Conditions</Text>
-              <TouchableOpacity onPress={() => setTermsModalVisible(false)}>
-                <MaterialIcons name="close" size={24} color={theme.colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView style={styles.legalTextContainer}>
-              <Text style={styles.legalText}>
-                These Terms and Conditions ("Terms") govern your use of EchoNotes, a voice recording and transcription application. By using our application, you agree to these Terms.
-              </Text>
-              <Text style={styles.legalSectionTitle}>1. User Accounts</Text>
-              <Text style={styles.legalText}>
-                You may be required to create an account to use certain features of our application. You are responsible for maintaining the confidentiality of your account credentials.
-              </Text>
-              <Text style={styles.legalSectionTitle}>2. License</Text>
-              <Text style={styles.legalText}>
-                Subject to these Terms, we grant you a limited, non-exclusive, non-transferable license to use the application for your personal, non-commercial purposes.
-              </Text>
-              <Text style={styles.legalSectionTitle}>3. Privacy</Text>
-              <Text style={styles.legalText}>
-                Your use of the application is also governed by our Privacy Policy, which can be found in the app menu.
-              </Text>
-            </ScrollView>
-            
-            <TouchableOpacity 
-              style={styles.primaryButton}
-              onPress={() => setTermsModalVisible(false)}
-            >
-              <Text style={styles.primaryButtonText}>I Understand</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Terms Modal */}
+      <TermsModal 
+        visible={termsModalVisible} 
+        onClose={() => setTermsModalVisible(false)} 
+      />
       
-      {/* Privacy Policy Modal - Placeholder content */}
-      <Modal
-        visible={privacyModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setPrivacyModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Privacy Policy</Text>
-              <TouchableOpacity onPress={() => setPrivacyModalVisible(false)}>
-                <MaterialIcons name="close" size={24} color={theme.colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView style={styles.legalTextContainer}>
-              <Text style={styles.legalText}>
-                This Privacy Policy describes how we collect, use, and disclose your information when you use our EchoNotes application.
-              </Text>
-              <Text style={styles.legalSectionTitle}>1. Information We Collect</Text>
-              <Text style={styles.legalText}>
-                We may collect information that you provide directly, such as when you create an account, upload content, or contact us for support. We also automatically collect certain information when you use the application.
-              </Text>
-              <Text style={styles.legalSectionTitle}>2. How We Use Your Information</Text>
-              <Text style={styles.legalText}>
-                We use the information we collect to provide, maintain, and improve our services, to communicate with you, and to comply with legal obligations.
-              </Text>
-              <Text style={styles.legalSectionTitle}>3. Data Security</Text>
-              <Text style={styles.legalText}>
-                We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.
-              </Text>
-            </ScrollView>
-            
-            <TouchableOpacity 
-              style={styles.primaryButton}
-              onPress={() => setPrivacyModalVisible(false)}
-            >
-              <Text style={styles.primaryButtonText}>I Understand</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Privacy Policy Modal */}
+      <PrivacyPolicyModal 
+        visible={privacyModalVisible} 
+        onClose={() => setPrivacyModalVisible(false)} 
+      />
     </View>
   );
 }
