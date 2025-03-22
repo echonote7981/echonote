@@ -1,13 +1,14 @@
 import { StyleSheet } from 'react-native';
 
-
 const audioStyles = StyleSheet.create({
   container: {
     width: '100%',
-    padding: 15,
-    backgroundColor: '#2C2C2E',
-    borderRadius: 10,
-    marginBottom: 10,
+    padding: 10,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 8,
+    marginTop: 10,
+    position: 'relative',
+    bottom: 0,
   },
   loadingContainer: {
     alignItems: 'center',
@@ -42,33 +43,35 @@ const audioStyles = StyleSheet.create({
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 5,
+    marginBottom: 2,
   },
   timeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
+    color: '#AAAAAA',
+    fontSize: 10,
   },
   slider: {
     width: '100%',
-    height: 40,
+    height: 30,
+    marginVertical: -5,
   },
   controlsContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 5,
+    marginTop: 0,
+    paddingHorizontal: 10,
   },
   controlButton: {
-    padding: 10,
+    padding: 5,
   },
   playButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#0A84FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 20,
+    marginHorizontal: 10,
   },
 });
 

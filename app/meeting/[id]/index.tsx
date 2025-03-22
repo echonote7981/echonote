@@ -311,13 +311,6 @@ export default function MeetingDetails() {
 
             {meeting.transcript && (
               <DetailSection icon="description" label="Transcript">
-                {meeting.id && (
-                  <AudioPlayer
-                    audioUrl={meeting.audioUrl || `${meetingsApi.getBaseUrl()}/meetings/${meeting.id}/audio`}
-                    duration={meeting.duration}
-                    meetingId={meeting.id}
-                  />
-                )}
                 <View style={styles.transcriptContainer}>
                   <View style={styles.textContainer}>
                     <TranscriptText
@@ -344,6 +337,15 @@ export default function MeetingDetails() {
                       />
                     </View>
                   </TouchableOpacity>
+                  
+                  {/* Audio player positioned at the bottom of transcript */}
+                  {meeting.id && (
+                    <AudioPlayer
+                      audioUrl={meeting.audioUrl || `${meetingsApi.getBaseUrl()}/meetings/${meeting.id}/audio`}
+                      duration={meeting.duration}
+                      meetingId={meeting.id}
+                    />
+                  )}
                 </View>
               </DetailSection>
             )}

@@ -372,11 +372,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, duration = 0, meeti
         </View>
       ) : (
         <>
-          <View style={audioStyles.timeContainer}>
-            <Text style={audioStyles.timeText}>{formatTime(position)}</Text>
-            <Text style={audioStyles.timeText}>{formatTime(totalDuration)}</Text>
-          </View>
-          
           <Slider
             style={audioStyles.slider}
             minimumValue={0}
@@ -391,21 +386,27 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, duration = 0, meeti
           />
           
           <View style={audioStyles.controlsContainer}>
-            <TouchableOpacity style={audioStyles.controlButton} onPress={rewind}>
-              <MaterialIcons name="replay-10" size={28} color="#FFFFFF" />
-            </TouchableOpacity>
+            <Text style={audioStyles.timeText}>{formatTime(position)}</Text>
             
-            <TouchableOpacity style={audioStyles.playButton} onPress={togglePlayback}>
-              <MaterialIcons
-                name={isPlaying ? "pause" : "play-arrow"}
-                size={36}
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <TouchableOpacity style={audioStyles.controlButton} onPress={rewind}>
+                <MaterialIcons name="replay-10" size={20} color="#AAAAAA" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={audioStyles.playButton} onPress={togglePlayback}>
+                <MaterialIcons
+                  name={isPlaying ? "pause" : "play-arrow"}
+                  size={20}
                 color="#FFFFFF"
               />
             </TouchableOpacity>
             
             <TouchableOpacity style={audioStyles.controlButton} onPress={forward}>
-              <MaterialIcons name="forward-10" size={28} color="#FFFFFF" />
+              <MaterialIcons name="forward-10" size={20} color="#AAAAAA" />
             </TouchableOpacity>
+            </View>
+            
+            <Text style={audioStyles.timeText}>{formatTime(totalDuration)}</Text>
           </View>
         </>
       )}

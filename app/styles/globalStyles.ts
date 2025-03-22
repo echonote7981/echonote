@@ -452,23 +452,111 @@ const globalStyles = StyleSheet.create({
     textAlign: 'center',
     textDecorationLine: 'underline',
   },
-  banner1: {
-    padding: 10,
-    backgroundColor: theme.colors.warning,
-    borderRadius: 5,
-    marginBottom: 10,
-    alignItems: 'center',
+  containerUpGrade: {
+    flex: 1,
+    backgroundColor: '#121212',
   },
-  bannerText1: {
-    color: theme.colors.textPrimary,
-    fontSize: 14,
+  headerUpGrade: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2C2C2E',
+  },
+  cancelButtonUpGrade: {
+    padding: 8,
+  },
+  cancelText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  upgradeText: {
-    color: theme.colors.primary,
-    fontSize: 14,
-    textDecorationLine: 'underline',
+  content: {
+    padding: 24,
   },
+  title1: {
+    color: '#007AFF',
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 32,
+  },
+  featuresList: {
+    marginBottom: 32,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  featureIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2C2C2E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  featureTextContainer: {
+    flex: 1,
+  },
+  featureText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  featureSubtext: {
+    color: '#8E8E93',
+    fontSize: 14,
+    marginTop: 2,
+  },
+  pricingButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  annualButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  pricingButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  savingsText: {
+    color: '#007AFF',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  restoreText: {
+    color: '#007AFF',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  footerContainer: {
+    marginTop: 16,
+  },
+  footerText: {
+    color: '#8E8E93',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+
 });
 
 export default globalStyles;
