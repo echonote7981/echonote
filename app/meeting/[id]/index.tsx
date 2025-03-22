@@ -1,7 +1,7 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, LayoutAnimation } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, LayoutAnimation, Modal, SafeAreaView, StatusBar, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { meetingsApi, actionsApi } from '../../services/api';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Meeting, Action } from '../../services/api';
 import LoadingScreen from '../../components/LoadingScreen';
 import DetailSection from '../../components/DetailSection';
@@ -52,8 +52,13 @@ export default function MeetingDetails() {
   const [selectedAction, setSelectedAction] = useState<Action | undefined>();
   const [showAllActions, setShowAllActions] = useState(false);
   const [showFullTranscript, setShowFullTranscript] = useState(false);
+  const [showTranscriptModal, setShowTranscriptModal] = useState(false);
   const [showAllHighlights, setShowAllHighlights] = useState(false);
   const [movedToPending, setMovedToPending] = useState<Set<string>>(new Set());
+  const [audioPosition, setAudioPosition] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const transcriptScrollViewRef = useRef<ScrollView>(null);
+  const audioPlayerRef = useRef<any>(null);
 
   const processTranscript = useCallback(async (transcript: string) => {
     setProcessingTranscript(true);
@@ -259,7 +264,10 @@ export default function MeetingDetails() {
 
   const toggleTranscript = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setShowFullTranscript(!showFullTranscript);
+    // Open the full-screen modal instead of just expanding in-place
+    setShowTranscriptModal(true);
+    // Reset audio position when opening the modal
+    setAudioPosition(0);
   };
 
   const toggleHighlights = () => {
@@ -284,30 +292,26 @@ export default function MeetingDetails() {
           </View>
         ) : (
           <>
-            <DetailSection icon="title">
-              <View style={styles.inlineContainer}>
-                <Text style={styles.inlineLabel}>Title:</Text>
-                <Text style={styles.value}>{meeting.title}</Text>
+            <View style={styles.section}>
+              <View style={styles.titleRow}>
+                <Text style={styles.iconText}>T</Text>
+                <Text style={styles.sectionTitle}>{meeting.title}</Text>
               </View>
-            </DetailSection>
-
-            <DetailSection icon="event">
-              <View style={styles.inlineContainer}>
-                <Text style={styles.inlineLabel}>Date:</Text>
-                <Text style={styles.value}>
+              
+              <View style={styles.detailRow}>
+                <MaterialIcons name="event" size={24} color="#FFFFFF" />
+                <Text style={styles.detailText}>
                   {new Date(meeting.date).toLocaleDateString()}
                 </Text>
               </View>
-            </DetailSection>
-
-            <DetailSection icon="timer">
-              <View style={styles.inlineContainer}>
-                <Text style={styles.inlineLabel}>Duration:</Text>
-                <Text style={styles.value}>
+              
+              <View style={styles.detailRow}>
+                <MaterialIcons name="timer" size={24} color="#FFFFFF" />
+                <Text style={styles.detailText}>
                   {timeUtils.formatDuration(meeting.duration || 0)}
                 </Text>
               </View>
-            </DetailSection>
+            </View>
 
             {meeting.transcript && (
               <DetailSection icon="description" label="Transcript">
@@ -317,9 +321,9 @@ export default function MeetingDetails() {
                       text={meeting.transcript || ''}
                       style={{
                         ...styles.transcriptText,
-                        height: showFullTranscript ? undefined : 80,
+                        height: 80,
                       }}
-                      numberOfLines={showFullTranscript ? undefined : 4}
+                      numberOfLines={4}
                     />
                   </View>
                   <TouchableOpacity
@@ -327,25 +331,14 @@ export default function MeetingDetails() {
                     onPress={toggleTranscript}
                   >
                     <View style={styles.showMoreContent}>
-                      <Text style={styles.showMoreText}>
-                        {showFullTranscript ? 'Show Less' : 'Show More'}
-                      </Text>
+                      <Text style={styles.showMoreText}>Show More</Text>
                       <MaterialIcons
-                        name={showFullTranscript ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                        name={'keyboard-arrow-down'}
                         size={24}
                         color="#0A84FF"
                       />
                     </View>
                   </TouchableOpacity>
-                  
-                  {/* Audio player positioned at the bottom of transcript */}
-                  {meeting.id && (
-                    <AudioPlayer
-                      audioUrl={meeting.audioUrl || `${meetingsApi.getBaseUrl()}/meetings/${meeting.id}/audio`}
-                      duration={meeting.duration}
-                      meetingId={meeting.id}
-                    />
-                  )}
                 </View>
               </DetailSection>
             )}
@@ -538,6 +531,69 @@ export default function MeetingDetails() {
         onMarkAsReviewed={(action) => handleMarkAsReviewed(action.id)}
         initialAction={selectedAction}
       />
+      
+      {/* Full-screen transcript modal */}
+      <Modal
+        visible={showTranscriptModal}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => {
+          // Ensure audio is paused when closing the modal
+          if (audioPlayerRef.current?.pauseAudio) {
+            audioPlayerRef.current.pauseAudio();
+          }
+          setShowTranscriptModal(false);
+        }}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <StatusBar barStyle="light-content" />
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => {
+                // Ensure audio is paused when closing the modal
+                if (audioPlayerRef.current?.pauseAudio) {
+                  audioPlayerRef.current.pauseAudio();
+                }
+                setShowTranscriptModal(false);
+              }}
+            >
+              <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Transcript</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+          
+          <ScrollView 
+            ref={transcriptScrollViewRef}
+            style={styles.modalScrollView} 
+            contentContainerStyle={styles.modalContent}
+          >
+            <TranscriptText
+              text={meeting?.transcript || ''}
+              style={styles.fullTranscriptText}
+              currentPosition={audioPosition}
+              totalDuration={audioDuration || (meeting?.duration || 0) * 1000}
+              scrollViewRef={transcriptScrollViewRef}
+            />
+            <View style={styles.scrollPadding} />
+          </ScrollView>
+          
+          {/* Fixed audio player at bottom */}
+          <View style={styles.fixedAudioPlayerContainer}>
+            {meeting?.id && (
+              <AudioPlayer
+                ref={audioPlayerRef}
+                audioUrl={meeting.audioUrl || `${meetingsApi.getBaseUrl()}/meetings/${meeting.id}/audio`}
+                duration={meeting.duration}
+                meetingId={meeting.id}
+                onPositionChange={(position: number) => setAudioPosition(position)}
+                onDurationChange={(duration: number) => setAudioDuration(duration)}
+              />
+            )}
+          </View>
+        </SafeAreaView>
+      </Modal>
     </>
   );
 }
@@ -547,8 +603,63 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1C1C1E',
   },
-  contentContainer: {
+  section: {
+    marginBottom: 16,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 12,
     padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 0,
+    flex: 1,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16
+    
+    
+    
+    
+    
+    
+    
+    
+    ,
+  },
+  iconText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginRight: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  detailText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    marginLeft: 12,
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  icon: {
+    marginRight: 8,
+  },
+  contentContainer: {
+    padding: 18,
     paddingBottom: 100, // Increased padding for the larger bottom tab bar
   },
   loadingContainer: {
@@ -748,5 +859,57 @@ const styles = StyleSheet.create({
   actionItemDateCompleted: {
     textDecorationLine: 'line-through',
     color: '#666666',
+  },
+  // Full-screen transcript modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#1C1C1E',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#2C2C2E',
+    borderBottomWidth: 1,
+    borderBottomColor: '#3A3A3C',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  headerSpacer: {
+    width: 40, // Same width as close button for centering title
+  },
+  modalScrollView: {
+    flex: 1,
+  },
+  modalContent: {
+    padding: 16,
+    paddingBottom: 100, // Extra padding to account for fixed audio player
+  },
+  fullTranscriptText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    lineHeight: 24,
+  },
+  scrollPadding: {
+    height: 120, // Extra padding at bottom for scrolling past the audio player
+  },
+  fixedAudioPlayerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#2C2C2E',
+    borderTopWidth: 1,
+    borderTopColor: '#3A3A3C',
+    paddingTop: 8,
+    paddingBottom: 24, // Extra padding for bottom safe area
   },
 });

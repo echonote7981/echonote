@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Audio } from 'expo-av';
+import { Audio, AVPlaybackStatus } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import { MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
@@ -11,6 +11,8 @@ interface AudioPlayerProps {
   audioUrl: string;
   duration?: number;
   meetingId?: string;
+  onPositionChange?: (position: number) => void;
+  onDurationChange?: (duration: number) => void;
 }
 
 
@@ -25,7 +27,20 @@ const formatTime = (milliseconds: number): string => {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, duration = 0, meetingId }) => {
+// Define the ref interface
+export interface AudioPlayerRef {
+  pauseAudio: () => Promise<void>;
+  playAudio: () => Promise<void>;
+  seekTo: (position: number) => Promise<void>;
+}
+
+const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({ 
+  audioUrl, 
+  duration = 0, 
+  meetingId,
+  onPositionChange,
+  onDurationChange
+}, ref) => {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -274,16 +289,55 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, duration = 0, meeti
   const onPlaybackStatusUpdate = (status: any) => {
     if (!status.isLoaded) return;
     
+    const currentPosition = status.positionMillis || 0;
+    
     if (!isSeeking) {
-      setPosition(status.positionMillis || 0);
-      setSliderValue(status.positionMillis || 0);
+      setPosition(currentPosition);
+      setSliderValue(currentPosition);
+      
+      // Call position change callback if provided
+      if (onPositionChange) {
+        onPositionChange(currentPosition);
+      }
     }
     
-    if (status.isLoaded && !totalDuration && status.durationMillis) {
-      setTotalDuration(status.durationMillis);
+    if (status.isLoaded && status.durationMillis) {
+      // Only update if different to avoid unnecessary re-renders
+      if (totalDuration !== status.durationMillis) {
+        setTotalDuration(status.durationMillis);
+        
+        // Call duration change callback if provided
+        if (onDurationChange) {
+          onDurationChange(status.durationMillis);
+        }
+      }
     }
     
     setIsPlaying(status.isPlaying);
+  };
+
+  // Pause audio (exposed via ref)
+  const pauseAudio = async () => {
+    if (!sound || !isPlaying) return;
+    
+    try {
+      await sound.pauseAsync();
+      console.log('Audio paused successfully via ref');
+    } catch (error) {
+      console.error('Error pausing audio:', error);
+    }
+  };
+  
+  // Play audio (exposed via ref)
+  const playAudio = async () => {
+    if (!sound || isPlaying) return;
+    
+    try {
+      await sound.playAsync();
+      console.log('Audio playing successfully via ref');
+    } catch (error) {
+      console.error('Error playing audio:', error);
+    }
   };
 
   // Play/pause toggle with error handling
@@ -295,11 +349,9 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, duration = 0, meeti
     
     try {
       if (isPlaying) {
-        await sound.pauseAsync();
-        console.log('Audio paused successfully');
+        await pauseAudio();
       } else {
-        await sound.playAsync();
-        console.log('Audio playing successfully');
+        await playAudio();
       }
     } catch (error) {
       console.error('Error toggling playback:', error);
@@ -312,7 +364,19 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, duration = 0, meeti
     if (!sound) return;
     await sound.setPositionAsync(value);
     setPosition(value);
+    
+    // Call position change callback when seeking
+    if (onPositionChange) {
+      onPositionChange(value);
+    }
   };
+  
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    pauseAudio,
+    playAudio,
+    seekTo
+  }));
 
   // Handle slider events
   const onSlidingStart = () => {
@@ -412,6 +476,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, duration = 0, meeti
       )}
     </View>
   );
-};
+});
 
 export default AudioPlayer;

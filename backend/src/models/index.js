@@ -37,11 +37,14 @@ sequelize
     console.error('Unable to connect to the database:', err);
   });
 
+// Import Sequelize DataTypes
+const { DataTypes } = Sequelize;
+
 // Import models
-const Meeting = require('./Meeting')(sequelize);
-const Action = require('./Action')(sequelize);
-const ArchivedMeeting = require('./ArchivedMeeting')(sequelize);
-const User = require('./User')(sequelize);
+const Meeting = require('./Meeting')(sequelize, DataTypes);
+const Action = require('./Action')(sequelize, DataTypes);
+const ArchivedMeeting = require('./ArchivedMeeting')(sequelize, DataTypes);
+const User = require('./User')(sequelize, DataTypes);
 
 // Initialize models
 const models = {
