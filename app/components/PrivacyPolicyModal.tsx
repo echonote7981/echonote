@@ -101,12 +101,13 @@ export default function PrivacyPolicyModal({ visible, onClose, onAccept, showAcc
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity 
-              style={styles.acceptButton}
-              onPress={onClose}
-            >
-              <Text style={styles.acceptButtonText}>I Understand</Text>
-            </TouchableOpacity>
+            <View style={styles.singleButtonContainer}>
+              <TouchableOpacity onPress={onClose}>
+                <View style={styles.customButton}>
+                  <Text style={styles.customButtonText}>I Agree</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </View>
@@ -161,13 +162,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 20,
   },
+  singleButtonContainer: {
+    marginTop: 20,
+    width: '100%',
+    alignItems: 'center',
+  },
   acceptButton: {
     backgroundColor: theme.colors.primary,
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 10,
-    flex: 1,
+    minHeight: 50,
   },
   acceptedButton: {
     backgroundColor: theme.colors.success,
@@ -193,5 +200,42 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.25)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  closeButton: {
+    backgroundColor: '#FF453A',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    minHeight: 50,
+    width: '80%',
+  },
+  closeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  customButton: {
+    backgroundColor: '#FF9500',
+    borderWidth: 0,
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    minHeight: 50,
+    width: 200,
+  },
+  customButtonText: {
+    color: '#000000',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

@@ -102,12 +102,13 @@ export default function TermsModal({ visible, onClose, onAccept, showAcceptButto
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity 
-              style={styles.acceptButton}
-              onPress={onClose}
-            >
-              <Text style={styles.acceptButtonText}>I Understand</Text>
-            </TouchableOpacity>
+            <View style={styles.singleButtonContainer}>
+              <TouchableOpacity onPress={onClose}>
+                <View style={styles.customButton}>
+                  <Text style={styles.customButtonText}>I Understand</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </View>
@@ -120,6 +121,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 20,
+  },
+  singleButtonContainer: {
+    marginTop: 20,
+    width: '100%',
+    alignItems: 'center',
   },
   acceptedButton: {
     backgroundColor: theme.colors.success,
@@ -187,10 +193,29 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
     marginTop: 10,
+    flex: 1,
   },
   acceptButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  customButton: {
+    backgroundColor: '#FF9500',
+    borderWidth: 0,
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    minHeight: 50,
+    width: 200,
+  },
+  customButtonText: {
+    color: '#000000',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
