@@ -26,9 +26,16 @@ function TranscriptText({
   }, [text]);
 
   // Calculate which part of the text should be highlighted based on current position
+  // Apply a small offset to account for audio processing delay
   const highlightProgress = useMemo(() => {
     if (!totalDuration || totalDuration <= 0) return 0;
-    return Math.min(currentPosition / totalDuration, 1);
+    
+    // Apply a small time offset (100ms) to account for audio processing delay
+    // This helps synchronize the highlighting with the actual audio playback
+    const adjustedPosition = Math.max(0, currentPosition - 100);
+    
+    // Ensure we don't exceed 1.0 (100%)
+    return Math.min(adjustedPosition / totalDuration, 1);
   }, [currentPosition, totalDuration]);
 
   // Get screen width to ensure text wrapping
@@ -36,12 +43,32 @@ function TranscriptText({
   const containerWidth = screenWidth - 32; // Account for padding
 
   // Auto-scroll to the current position if scrollViewRef is provided
+  // Use a debounced approach to avoid too frequent scrolling
   React.useEffect(() => {
+    let scrollTimeout: NodeJS.Timeout | undefined;
+    
     if (scrollViewRef?.current && highlightProgress > 0.05 && paragraphs.length > 5) {
-      // Calculate approximate scroll position based on progress
-      const estimatedScrollPosition = highlightProgress * (paragraphs.length * 24); // 24px per line approx
-      scrollViewRef.current.scrollTo({ y: estimatedScrollPosition, animated: true });
+      // Clear any pending scroll operations
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      
+      // Delay scrolling slightly to avoid jitter and ensure smoother experience
+      scrollTimeout = setTimeout(() => {
+        // Calculate which paragraph we're currently in
+        const currentParagraphIndex = Math.floor(highlightProgress * paragraphs.length);
+        
+        // Calculate scroll position based on paragraph index rather than raw progress
+        // This provides more accurate scrolling to the current paragraph
+        const estimatedScrollPosition = currentParagraphIndex * 24; // 24px per line approx
+        
+        // Use smooth scrolling with a small delay
+        scrollViewRef.current?.scrollTo({ 
+          y: estimatedScrollPosition, 
+          animated: true 
+        });
+      }, 200); // 200ms delay for smoother scrolling
     }
+    
+    return () => clearTimeout(scrollTimeout);
   }, [highlightProgress, scrollViewRef, paragraphs.length]);
 
   // If no highlighting needed (e.g., in preview mode), render simple text
@@ -87,9 +114,17 @@ function TranscriptText({
         }
         
         // For the current paragraph, calculate how much of it should be highlighted
+        // Use a more precise word-by-word approach for better synchronization
         const words = paragraph.split(' ');
-        const progressWithinParagraph = (highlightProgress - paragraphStart) / (paragraphEnd - paragraphStart);
-        const highlightedWordCount = Math.ceil(words.length * progressWithinParagraph);
+        
+        // Calculate progress within this specific paragraph with better precision
+        let progressWithinParagraph = (highlightProgress - paragraphStart) / (paragraphEnd - paragraphStart);
+        
+        // Apply smoothing to avoid jumpy highlighting
+        progressWithinParagraph = Math.max(0, Math.min(1, progressWithinParagraph));
+        
+        // Calculate the exact number of words to highlight based on precise progress
+        const highlightedWordCount = Math.round(words.length * progressWithinParagraph);
         
         // Create two parts: highlighted and non-highlighted
         const highlightedPart = words.slice(0, highlightedWordCount).join(' ');

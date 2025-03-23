@@ -1,6 +1,6 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { Audio, AVPlaybackStatus, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import { MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
@@ -52,19 +52,22 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
   const [retryCount, setRetryCount] = useState(0);
   const MAX_RETRIES = 3;
 
-  // Setup audio session for proper playback in different app states
+  // Setup audio session for proper playback in different app states with enhanced volume
   useEffect(() => {
     const setupAudioSession = async () => {
       try {
         await Audio.setAudioModeAsync({
           playsInSilentModeIOS: true,
           staysActiveInBackground: true,
-          interruptionModeIOS: 1,
-          interruptionModeAndroid: 1,
-          shouldDuckAndroid: true,
-          playThroughEarpieceAndroid: false,
+          // Use DoNotMix for higher priority audio
+          interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+          // Use DoNotMix for higher priority audio
+          interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+          shouldDuckAndroid: false, // Don't lower volume for other apps
+          playThroughEarpieceAndroid: false, // Use speaker instead of earpiece
+          allowsRecordingIOS: false, // Optimize for playback
         });
-        console.log('Audio session setup successfully');
+        console.log('Enhanced audio session setup successfully');
       } catch (error) {
         console.error('Failed to setup audio session:', error);
       }
@@ -154,9 +157,19 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
           console.log('Loading sound from local file:', localFilePath);
           const { sound: newSound } = await Audio.Sound.createAsync(
             { uri: localFilePath },
-            { shouldPlay: false },
+            { 
+              shouldPlay: false,
+              volume: 1.0, // Maximum volume
+              progressUpdateIntervalMillis: 50, // More frequent updates (50ms) for better sync
+              positionMillis: 0,
+              rate: 1.0, // Normal playback rate
+              shouldCorrectPitch: true, // Better audio quality
+            },
             onPlaybackStatusUpdate
           );
+          
+          // Set initial volume to maximum
+          await newSound.setVolumeAsync(1.0);
           
           setSound(newSound);
           setIsLoading(false); // Set loading to false when audio is loaded successfully
@@ -188,9 +201,19 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
             try {
               const { sound: newSound } = await Audio.Sound.createAsync(
                 { uri: rawApiUrl },
-                { shouldPlay: false },
+                { 
+                  shouldPlay: false,
+                  volume: 1.0, // Maximum volume
+                  progressUpdateIntervalMillis: 100, // More frequent updates for better sync
+                  positionMillis: 0,
+                  rate: 1.0, // Normal playback rate
+                  shouldCorrectPitch: true, // Better audio quality
+                },
                 onPlaybackStatusUpdate
               );
+              
+              // Set initial volume to maximum
+              await newSound.setVolumeAsync(1.0);
               setSound(newSound);
               console.log('Audio loaded successfully with raw API URL');
               setIsLoading(false);
@@ -205,9 +228,19 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
               try {
                 const { sound: newSound } = await Audio.Sound.createAsync(
                   { uri: fallbackUrl },
-                  { shouldPlay: false },
+                  { 
+                    shouldPlay: false,
+                    volume: 1.0, // Maximum volume
+                    progressUpdateIntervalMillis: 100, // More frequent updates for better sync
+                    positionMillis: 0,
+                    rate: 1.0, // Normal playback rate
+                    shouldCorrectPitch: true, // Better audio quality
+                  },
                   onPlaybackStatusUpdate
                 );
+                
+                // Set initial volume to maximum
+                await newSound.setVolumeAsync(1.0);
                 setSound(newSound);
                 console.log('Audio loaded successfully with fallback URL');
                 setIsLoading(false);
@@ -285,20 +318,24 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     };
   }, [audioUrl, meetingId, retryCount]);
 
-  // Update playback status
+  // Update playback status with more precise position tracking
   const onPlaybackStatusUpdate = (status: any) => {
     if (!status.isLoaded) return;
     
     const currentPosition = status.positionMillis || 0;
     
     if (!isSeeking) {
-      setPosition(currentPosition);
-      setSliderValue(currentPosition);
-      
-      // Call position change callback if provided
-      if (onPositionChange) {
-        onPositionChange(currentPosition);
-      }
+      // Use requestAnimationFrame for smoother updates
+      requestAnimationFrame(() => {
+        setPosition(currentPosition);
+        setSliderValue(currentPosition);
+        
+        // Call position change callback if provided
+        if (onPositionChange) {
+          // Send precise position with timestamp for better synchronization
+          onPositionChange(currentPosition);
+        }
+      });
     }
     
     if (status.isLoaded && status.durationMillis) {
@@ -328,19 +365,40 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     }
   };
   
-  // Play audio (exposed via ref)
+  // Play audio (exposed via ref) with enhanced audio settings
   const playAudio = async () => {
     if (!sound || isPlaying) return;
     
     try {
+      // Apply audio enhancements before playing
+      await sound.setVolumeAsync(1.0);
+      await sound.setRateAsync(1.0, true); // Normal rate with pitch correction for better quality
+      
+      // On iOS, we can use this to route audio to the built-in speaker
+      if (Platform.OS === 'ios') {
+        try {
+          await Audio.setAudioModeAsync({
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: true,
+            interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+            interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+            shouldDuckAndroid: false,
+            playThroughEarpieceAndroid: false,
+            allowsRecordingIOS: false,
+          });
+        } catch (error) {
+          console.error('Error setting audio mode during playback:', error);
+        }
+      }
+      
       await sound.playAsync();
-      console.log('Audio playing successfully via ref');
+      console.log('Enhanced audio playing successfully via ref');
     } catch (error) {
       console.error('Error playing audio:', error);
     }
   };
 
-  // Play/pause toggle with error handling
+  // Play/pause toggle with error handling and volume boost
   const togglePlayback = async () => {
     if (!sound) {
       console.log('No sound object available');
@@ -351,6 +409,8 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
       if (isPlaying) {
         await pauseAudio();
       } else {
+        // Ensure maximum volume before playing
+        await sound.setVolumeAsync(1.0);
         await playAudio();
       }
     } catch (error) {

@@ -575,6 +575,8 @@ export default function MeetingDetails() {
               currentPosition={audioPosition}
               totalDuration={audioDuration || (meeting?.duration || 0) * 1000}
               scrollViewRef={transcriptScrollViewRef}
+              // Add key with audioPosition to force re-render on position changes
+              key={`transcript-${Math.floor(audioPosition / 500)}`}
             />
             <View style={styles.scrollPadding} />
           </ScrollView>
@@ -587,7 +589,12 @@ export default function MeetingDetails() {
                 audioUrl={meeting.audioUrl || `${meetingsApi.getBaseUrl()}/meetings/${meeting.id}/audio`}
                 duration={meeting.duration}
                 meetingId={meeting.id}
-                onPositionChange={(position: number) => setAudioPosition(position)}
+                onPositionChange={(position: number) => {
+                  // Use requestAnimationFrame for smoother UI updates
+                  requestAnimationFrame(() => {
+                    setAudioPosition(position);
+                  });
+                }}
                 onDurationChange={(duration: number) => setAudioDuration(duration)}
               />
             )}
