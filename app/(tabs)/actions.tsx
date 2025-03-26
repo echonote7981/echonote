@@ -424,7 +424,7 @@ const [bannerDismissed, setBannerDismissed] = useState(false);
       onRequestClose={() => setShowActionMenu(false)}
     >
       <Pressable
-        style={globalStyles.modalOverlay}
+        style={styles.modalOverlay}
         onPress={() => setShowActionMenu(false)}
       >
         <View style={globalStyles.actionMenuContainer}>
@@ -461,7 +461,7 @@ const [bannerDismissed, setBannerDismissed] = useState(false);
       onRequestClose={() => setShowDeleteConfirm(false)}
     >
       <Pressable
-        style={globalStyles.modalOverlay}
+        style={styles.modalOverlay}
         onPress={() => setShowDeleteConfirm(false)}
       >
         <View style={globalStyles.confirmDialog}>
@@ -645,6 +645,12 @@ const styles = StyleSheet.create({
   },
   // Modal styles
   modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
@@ -851,5 +857,38 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: theme.colors.textSecondary,
+  },
+  banner: {
+    backgroundColor: '#FFD700',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  bannerText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  bannerButton: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  bannerButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  dismissButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+  },
+  dismissButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
   },
 });

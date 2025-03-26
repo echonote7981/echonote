@@ -7,6 +7,7 @@ const actionsRouter = require('./routes/actions');
 const usersRouter = require('./routes/users');
 const errorHandler = require('./middleware/errorHandler');
 const path = require('path');
+const { initCleanupTasks } = require('./services/cleanupService');
 
 dotenv.config();
 
@@ -37,6 +38,9 @@ sequelize.sync({ alter: true })
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server is running on port ${PORT}`);
       console.log(`Server is accessible at http://192.168.1.40:${PORT}`);
+      
+      // Initialize scheduled cleanup tasks
+      initCleanupTasks();
     });
   })
   .catch(error => {

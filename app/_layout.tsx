@@ -1,7 +1,7 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
+import GlobalStatusBar from './components/GlobalStatusBar';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import { View } from 'react-native';
@@ -34,7 +34,7 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <GlobalStatusBar />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="meeting" options={{ headerShown: false }} />

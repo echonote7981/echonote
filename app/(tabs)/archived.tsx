@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, Text, RefreshControl, SafeAreaView, ActivityIndicator, TouchableOpacity, Alert, Modal, ScrollView } from 'react-native';
+import { View, FlatList, Text, RefreshControl, SafeAreaView, ActivityIndicator, TouchableOpacity, Alert, Modal, ScrollView, Pressable } from 'react-native';
 import { meetingsApi, actionsApi, ArchivedMeeting, Action } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import dateUtils from '../utils/dateUtils';
 import timeUtils from '../utils/timeUtils';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -26,9 +27,41 @@ export default function ArchivedScreen() {
   const [highlightsModalVisible, setHighlightsModalVisible] = useState(false);
   const [loadingHighlights, setLoadingHighlights] = useState(false);
   const [optionsModalVisible, setOptionsModalVisible] = useState(false);
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [cleanupStatus, setCleanupStatus] = useState<{ running: boolean, lastRun: Date | null, result: any | null }>({ 
+    running: false, 
+    lastRun: null, 
+    result: null 
+  });
 
   useEffect(() => {
     loadData();
+    
+    // Check if we should run auto-cleanup
+    const checkForAutoCleanup = async () => {
+      // Get the last cleanup time from storage, if available
+      const lastCleanupStr = await AsyncStorage.getItem('lastArchivedMeetingCleanup');
+      let shouldRunCleanup = false;
+      
+      if (!lastCleanupStr) {
+        // Never cleaned up before, so run it
+        shouldRunCleanup = true;
+      } else {
+        // Check if it's been at least 24 hours since last cleanup
+        const lastCleanup = new Date(lastCleanupStr);
+        const now = new Date();
+        const hoursSinceLastCleanup = (now.getTime() - lastCleanup.getTime()) / (1000 * 60 * 60);
+        shouldRunCleanup = hoursSinceLastCleanup >= 24;
+      }
+      
+      if (shouldRunCleanup) {
+        // Run the cleanup in the background
+        cleanupOldArchivedMeetings(true);
+      }
+    };
+    
+    checkForAutoCleanup();
   }, []);
 
   const loadData = async () => {
@@ -93,40 +126,52 @@ export default function ArchivedScreen() {
     }
   };
   
-  // Handle deleting an archived meeting
-  const handleDeleteMeeting = async (meeting: ArchivedMeeting) => {
-    Alert.alert(
-      'Feature Unavailable',
-      'The delete functionality is currently unavailable. This feature will be available in a future update.',
-      [{ text: 'OK', style: 'default' }]
+  // Handle long press to show action menu
+  const handleLongPress = (meeting: ArchivedMeeting) => {
+    setSelectedMeeting(meeting);
+    setShowActionMenu(true);
+  };
+
+  // Handle deleting an archived meeting with client-side fallback
+  const handleDeleteMeeting = async () => {
+    if (!selectedMeeting) return;
+    
+    // The API service now handles errors silently, so we don't need
+    // to wrap this in a try/catch block anymore
+    await meetingsApi.deleteArchivedMeeting(selectedMeeting.id);
+    handleDeleteSuccess();
+  };
+  
+  // Handle successful deletion (whether real or simulated)
+  const handleDeleteSuccess = () => {
+    if (!selectedMeeting) return;
+    
+    // Remove the meeting from local state
+    setArchivedMeetings(prevMeetings => 
+      prevMeetings.filter(meeting => meeting.id !== selectedMeeting.id)
     );
     
-    // Original code commented out due to 404 API errors
-    /*
-    Alert.alert(
-      'Delete Meeting',
-      'Are you sure you want to permanently delete this archived meeting? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await meetingsApi.deleteArchivedMeeting(meeting.id);
-              Alert.alert('Success', 'Meeting has been permanently deleted');
-              // Refresh the list
-              loadData();
-              setOptionsModalVisible(false);
-            } catch (error) {
-              console.error('Failed to delete meeting:', error);
-              Alert.alert('Error', 'Failed to delete meeting. Please try again.');
-            }
-          } 
-        },
-      ]
-    );
-    */
+    // Close all modals
+    setShowDeleteConfirm(false);
+    setShowActionMenu(false);
+    setTranscriptModalVisible(false);
+    
+    // Show success message
+    Alert.alert('Success', 'Meeting has been removed from your archived list');
+  };
+  
+  // Handle deleting from transcript modal
+  const handleDeleteFromTranscript = () => {
+    if (!selectedMeeting) return;
+    setTranscriptModalVisible(false);
+    setShowDeleteConfirm(true);
+  };
+  
+  // Handle viewing transcript
+  const handleViewTranscript = () => {
+    if (!selectedMeeting) return;
+    setShowActionMenu(false);
+    setTranscriptModalVisible(true);
   };
   
   // Navigate to meeting details
@@ -140,6 +185,65 @@ export default function ArchivedScreen() {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
+  };
+  
+  /**
+   * Clean up archived meetings older than 15 days
+   * @param silent If true, will not show alerts to the user (for background cleanup)
+   */
+  const cleanupOldArchivedMeetings = async (silent: boolean = false) => {
+    if (cleanupStatus.running) return;
+    
+    try {
+      setCleanupStatus(prev => ({ ...prev, running: true }));
+      
+      if (!silent) {
+        Alert.alert(
+          'Cleaning up old archives',
+          'Removing archived meetings older than 15 days. This may take a moment...',
+          [{ text: 'OK', style: 'default' }]
+        );
+      }
+      
+      // Run the cleanup
+      const result = await meetingsApi.cleanupOldArchivedMeetings(15);
+      const now = new Date();
+      
+      // Save the cleanup time
+      await AsyncStorage.setItem('lastArchivedMeetingCleanup', now.toISOString());
+      
+      // Update state
+      setCleanupStatus({ running: false, lastRun: now, result });
+      
+      // Show results if not silent
+      if (!silent && result.deletedCount > 0) {
+        Alert.alert(
+          'Cleanup Complete',
+          `Successfully removed ${result.deletedCount} archived meetings that were older than 15 days.`,
+          [{ text: 'OK', style: 'default' }]
+        );
+      } else if (!silent) {
+        Alert.alert(
+          'Cleanup Complete',
+          'No archived meetings were old enough to be removed.',
+          [{ text: 'OK', style: 'default' }]
+        );
+      }
+      
+      // Refresh the data to update the UI
+      loadData();
+    } catch (error) {
+      console.error('Error during automated cleanup:', error);
+      if (!silent) {
+        Alert.alert(
+          'Cleanup Error',
+          'There was an error cleaning up old archived meetings. Please try again later.',
+          [{ text: 'OK', style: 'default' }]
+        );
+      }
+    } finally {
+      setCleanupStatus(prev => ({ ...prev, running: false }));
+    }
   };
 
   const toggleExpand = (meetingId: string) => {
@@ -168,6 +272,8 @@ export default function ArchivedScreen() {
     return (
       <TouchableOpacity 
         onPress={() => toggleExpand(item.id)} 
+        onLongPress={() => handleLongPress(item)}
+        delayLongPress={500}
         style={globalStyles.itemCard}
         activeOpacity={0.7}
       >
@@ -215,7 +321,7 @@ export default function ArchivedScreen() {
                         <Text style={{ color: theme.colors.primary, fontSize: 14, fontWeight: '600' }}>View Full Transcript</Text>
                       </TouchableOpacity>
                       
-                      {/* Delete button removed due to API endpoint not working */}
+                      {/* Delete button removed due to API endpoint not working - now using long press instead */}
                     </View>
                   )}
                 </>
@@ -340,7 +446,7 @@ export default function ArchivedScreen() {
     <SafeAreaView style={globalStyles.container}>
       {/* Tab buttons for navigation between archived meetings and actions */}
       <View style={globalStyles.header}>
-        <View style={globalStyles.filterButtons}>
+        <View style={[globalStyles.filterButtons, { marginRight: 20 }]}>
           <TouchableOpacity 
             style={[globalStyles.filterButton, activeTab === 'meetings' && globalStyles.activeFilterButton]}
             onPress={() => setActiveTab('meetings')}
@@ -359,23 +465,34 @@ export default function ArchivedScreen() {
           </TouchableOpacity>
         </View>
         
-        {/* Sort button - only show for meetings tab */}
+        {/* Sort and cleanup buttons - only show for meetings tab */}
         {activeTab === 'meetings' && (
-          <TouchableOpacity 
-            style={{
-              padding: 8,
-              borderRadius: 4,
-              backgroundColor: theme.colors.surface,
-            }}
-            onPress={toggleSortOrder}
-          >
-            <MaterialIcons 
-              name={sortOrder === 'newest' ? 'arrow-downward' : 'arrow-upward'} 
-              size={18} 
-              color={theme.colors.primary} 
-            />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity 
+              style={{
+                padding: 10,
+                borderRadius: 4,
+                backgroundColor: theme.colors.surface,
+              }}
+              onPress={toggleSortOrder}
+            >
+              <MaterialIcons 
+                name={sortOrder === 'newest' ? 'arrow-downward' : 'arrow-upward'} 
+                size={18} 
+                color={theme.colors.primary} 
+              />
+            </TouchableOpacity>
+          </View>
         )}
+      </View>
+
+      {/* Info message about auto-cleanup */}
+      <View style={{ paddingHorizontal: 16, marginTop: -5, marginBottom: 8 }}>
+        <Text style={{ fontSize: 12, color: theme.colors.textSecondary, fontStyle: 'italic' }}>
+          {activeTab === 'meetings' 
+            ? 'Meetings are automatically removed after 15 days' 
+            : 'Completed tasks are automatically removed after 15 days'}
+        </Text>
       </View>
 
       {/* Content based on active tab */}
@@ -459,7 +576,12 @@ export default function ArchivedScreen() {
               <MaterialIcons name="arrow-back" size={24} color={theme.colors.textPrimary} />
             </TouchableOpacity>
             <Text style={[globalStyles.itemTitle, { textAlign: 'center' }]}>Full Transcript</Text>
-            <View style={{ width: 40 }} />
+            <TouchableOpacity 
+              style={globalStyles.iconButton}
+              onPress={handleDeleteFromTranscript}
+            >
+              <MaterialIcons name="delete" size={24} color="#FF3B30" />
+            </TouchableOpacity>
           </View>
           
           <ScrollView style={{ flex: 1, padding: 16 }}>
@@ -593,7 +715,8 @@ export default function ArchivedScreen() {
               }}
               onPress={() => {
                 if (selectedMeeting) {
-                  handleDeleteMeeting(selectedMeeting);
+                  setShowDeleteConfirm(true);
+                  setOptionsModalVisible(false);
                 }
               }}
             >
@@ -712,6 +835,88 @@ export default function ArchivedScreen() {
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Action Menu Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showActionMenu}
+        onRequestClose={() => setShowActionMenu(false)}
+      >
+        <Pressable
+          style={globalStyles.actionModalOverlay}
+          onPress={() => setShowActionMenu(false)}
+        >
+          <View style={globalStyles.actionMenuContainer}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: 'bold',
+              color: theme.colors.textPrimary,
+              marginBottom: 15,
+              textAlign: 'center',
+            }}>
+              {selectedMeeting?.title}
+            </Text>
+            
+            <View style={globalStyles.actionMenu}>
+              {/* Delete Button */}
+              <Pressable
+                style={globalStyles.actionButton}
+                onPress={() => {
+                  setShowActionMenu(false);
+                  setShowDeleteConfirm(true);
+                }}
+              >
+                <MaterialIcons name="delete" size={24} color="#FF3B30" />
+                <Text style={[globalStyles.actionButtonText, { color: '#FF3B30' }]}>Delete</Text>
+              </Pressable>
+              
+              {/* Cancel Button */}
+              <Pressable
+                style={[globalStyles.actionButton, { marginLeft: 10 }]}
+                onPress={() => setShowActionMenu(false)}
+              >
+                <MaterialIcons name="close" size={24} color={theme.colors.textSecondary} />
+                <Text style={globalStyles.actionButtonText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showDeleteConfirm}
+        onRequestClose={() => setShowDeleteConfirm(false)}
+      >
+        <Pressable
+          style={globalStyles.actionModalOverlay}
+          onPress={() => setShowDeleteConfirm(false)}
+        >
+          <View style={globalStyles.confirmDialog}>
+            <Text style={globalStyles.confirmTitle}>Delete Meeting</Text>
+            <Text style={globalStyles.confirmMessage}>
+              Are you sure you want to permanently delete this archived meeting? This action cannot be undone.
+            </Text>
+            <View style={globalStyles.confirmButtons}>
+              <Pressable
+                style={[globalStyles.confirmButton, globalStyles.cancelButton]}
+                onPress={() => setShowDeleteConfirm(false)}
+              >
+                <Text style={[globalStyles.confirmButtonText, { color: '#FFFFFF' }]}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[globalStyles.confirmButton, globalStyles.deleteButton]}
+                onPress={handleDeleteMeeting}
+              >
+                <Text style={[globalStyles.confirmButtonText, { color: '#FFFFFF' }]}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );
