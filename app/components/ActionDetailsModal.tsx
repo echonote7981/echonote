@@ -19,6 +19,7 @@ import theme from '../styles/theme';
 import actionStyles from '../styles/actions';
 import globalStyles from '../styles/globalStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CalendarExportButton from './CalendarExportButton';
 
 
 
@@ -255,9 +256,15 @@ export default function ActionDetailsModal({
                       }}
                     />
                   </View>
+
+                  {/* Calendar Export Button */}
+                  {!isNotReviewed && (
+                    <CalendarExportButton 
+                      action={action} 
+                      style={actionStyles.exportButton} 
+                    />
+                  )}
                   
-
-
                   <View style={actionStyles.modalButtonContainer}>
                     <View style={actionStyles.modalBottomButtons}>
                       {isNotReviewed && (

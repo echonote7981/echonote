@@ -286,6 +286,13 @@ const actionStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
+  // Calendar Export Button style
+  exportButton: {
+    marginBottom: 16,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
 });
 
 

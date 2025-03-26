@@ -21,6 +21,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import theme from '../styles/theme';
 import globalStyles from '../styles/globalStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CalendarExportButton from './CalendarExportButton';
 
 interface ActionItemModalProps {
   visible: boolean;
@@ -401,6 +402,24 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                   returnKeyType="done"
                   blurOnSubmit={true}
                 />
+
+                {/* Calendar Export Button - only show for existing actions */}
+                {initialAction && initialAction.id && (
+                  <View style={styles.calendarExportContainer}>
+                    <CalendarExportButton 
+                      action={{
+                        ...initialAction,
+                        title,
+                        notes,
+                        details,
+                        priority,
+                        status,
+                        dueDate: dueDate.toISOString(),
+                      }} 
+                      style={styles.calendarExportButton}
+                    />
+                  </View>
+                )}
                 
                 <View style={styles.buttonRow}>
                   {initialAction && isPendingFolder && onCompleteTask && (
@@ -697,6 +716,15 @@ const styles = StyleSheet.create({
   },
   statusButtonTextNotReviewed: {
     color: '#999999',
+  },
+  calendarExportContainer: {
+    marginVertical: 16,
+  },
+  calendarExportButton: {
+    backgroundColor: '#2C2C2E',
+    borderWidth: 1,
+    borderColor: '#3C3C3E',
+    borderRadius: 8,
   },
 });
 
