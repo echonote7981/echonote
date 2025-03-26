@@ -309,13 +309,50 @@ export const meetingsApi = {
       throw error;
     }
   },
+  
+  // Restore an archived meeting
+  async restoreArchivedMeeting(id: string): Promise<void> {
+    try {
+      console.log(`Restoring archived meeting with ID: ${id}`);
+      const response = await api.post(`/meetings/archived/${id}/restore`, {});
+      return response.data;
+    } catch (error) {
+      console.error('Failed to restore archived meeting:', error);
+      throw error;
+    }
+  },
+  
+  // Delete an archived meeting permanently
+  async deleteArchivedMeeting(id: string): Promise<void> {
+    try {
+      console.log(`Deleting archived meeting with ID: ${id}`);
+      const response = await api.delete(`/meetings/archived/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to delete archived meeting:', error);
+      throw error;
+    }
+  },
 
-  // Archive meeting
+  // Archive meeting with highlights
   async archiveMeeting(id: string): Promise<void> {
     try {
-      console.log(`Archiving meeting with ID: ${id}`);
-      // Fix: Make sure we're using the correct endpoint format
-      const response = await api.post(`/meetings/${id}/archive`, {});
+      console.log(`Preparing to archive meeting with ID: ${id}`);
+      
+      // First, get the original meeting to ensure we have the highlights
+      const meeting = await meetingsApi.getById(id);
+      
+      if (!meeting) {
+        throw new Error(`Meeting with ID ${id} not found`);
+      }
+      
+      console.log(`Archiving meeting with ID: ${id} and including highlights:`, meeting.highlights);
+      
+      // Then archive it with the highlights included
+      const response = await api.post(`/meetings/${id}/archive`, {
+        highlights: meeting.highlights || []
+      });
+      
       return response.data;
     } catch (error) {
       console.error('Failed to archive meeting:', error);

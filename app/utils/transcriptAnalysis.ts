@@ -265,6 +265,20 @@ const rephraseDetails = (sentence: string): string => {
   return detailsText;
 };
 
+// Key phrases that indicate important information in a transcript
+const highlightPhrases = [
+  'important', 'critical', 'crucial', 'essential', 'key', 'significant', 'vital',
+  'priority', 'focus', 'emphasize', 'highlight', 'note', 'remember', 'attention',
+  'main point', 'takeaway', 'conclusion', 'summary', 'result', 'outcome',
+  'decision', 'agreement', 'consensus', 'approved', 'finalized', 'confirmed',
+  'deadline', 'target', 'goal', 'objective', 'milestone', 'achievement',
+  'success', 'failure', 'challenge', 'obstacle', 'risk', 'issue', 'problem',
+  'solution', 'strategy', 'plan', 'approach', 'method', 'technique',
+  'specifically', 'particularly', 'notably', 'especially', 'primarily',
+  'first', 'second', 'third', 'finally', 'lastly', 'in conclusion',
+  'congratulate', 'thank', 'appreciate', 'recognize', 'acknowledge'
+];
+
 const transcriptAnalysis = {
   extractActionItems(transcript: string): Partial<ExtendedAction>[] {
     if (!transcript) return [];
@@ -304,6 +318,56 @@ const transcriptAnalysis = {
 
     return actionItems;
   },
+
+  /**
+   * Extract highlights from a transcript
+   * @param transcript The meeting transcript
+   * @returns An array of highlight strings
+   */
+  extractHighlights(transcript: string): string[] {
+    if (!transcript) return [];
+
+    const sentences = transcript.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
+    const highlights: string[] = [];
+    
+    // Process each sentence to find potential highlights
+    sentences.forEach(sentence => {
+      if (sentence.length < 10) return; // Skip very short sentences
+      
+      const lowerSentence = sentence.toLowerCase();
+      
+      // Check if the sentence contains any highlight phrases
+      const hasHighlightPhrase = highlightPhrases.some(phrase => 
+        lowerSentence.includes(phrase.toLowerCase())
+      );
+      
+      // Check for sentences that might be important based on structure
+      const isStructurallyImportant = 
+        /^(first|second|third|finally|lastly|in conclusion|to summarize)/i.test(sentence) ||
+        /^(i want to emphasize|i need to highlight|please note|remember that)/i.test(sentence);
+      
+      // Add sentences that contain highlight phrases or are structurally important
+      if (hasHighlightPhrase || isStructurallyImportant) {
+        // Clean up the sentence
+        let highlight = sentence
+          .replace(/^(please note that|note that|remember that|i want to emphasize that|i need to highlight that)/i, '')
+          .trim();
+        
+        // Capitalize first letter if needed
+        if (highlight.length > 0 && /[a-z]/.test(highlight[0])) {
+          highlight = highlight.charAt(0).toUpperCase() + highlight.slice(1);
+        }
+        
+        // Add to highlights if not already included and not too long
+        if (!highlights.includes(highlight) && highlight.length <= 150) {
+          highlights.push(highlight);
+        }
+      }
+    });
+    
+    // Limit to top 5 highlights
+    return highlights.slice(0, 5);
+  }
 };
 
 export default transcriptAnalysis;

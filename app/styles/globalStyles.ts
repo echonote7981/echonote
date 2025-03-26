@@ -1,5 +1,7 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform, Dimensions } from 'react-native';
 import theme from './theme'; // Importing theme
+
+const { width } = Dimensions.get('window');
 
 const globalStyles = StyleSheet.create({
   container: {
@@ -28,6 +30,21 @@ const globalStyles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
+  },
+  
+  // Sort button styles
+  sortButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 4,
+    backgroundColor: theme.colors.surface,
+  },
+  sortButtonText: {
+    fontSize: 12,
+    marginLeft: 4,
+    color: theme.colors.primary,
+    fontWeight: '600',
   },
   headerActions: {
     flexDirection: 'row',
@@ -111,6 +128,38 @@ const globalStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 30,
+  },
+  
+  // Empty state styles
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  emptyStateButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  emptyStateButtonText: {
+    color: theme.colors.onPrimary,
+    fontSize: 16,
+    fontWeight: '600',
   },
   emptyText: {
     fontSize: 16,
@@ -245,6 +294,40 @@ const globalStyles = StyleSheet.create({
     fontWeight: '600',
     color: theme.colors.textSecondary,
   },
+  
+  // Action buttons for items
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginTop: 12,
+    flexWrap: 'wrap',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 4,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    marginLeft: 4,
+  },
+  
+  // Text button styles
+  textButton: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  textButtonLabel: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
   inProgressText: {
     color: '#FFD60A',
   },
@@ -269,13 +352,20 @@ const globalStyles = StyleSheet.create({
   lowPriorityFlag: {
     backgroundColor: theme.colors.success + '20',
   },
-  priorityText: {
+  // Renamed to avoid duplicate property
+  priorityTextLabelAlt: {
     fontSize: 12,
     fontWeight: '500',
   },
+  priorityText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
+  },
   
   // Modal styles
-  modalOverlay: {
+  actionModalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -298,15 +388,7 @@ const globalStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  actionButton: {
-    alignItems: 'center',
-    padding: 10,
-  },
-  actionButtonText: {
-    color: '#007AFF',
-    marginTop: 4,
-    fontSize: 14,
-  },
+
   
   // Confirmation dialog styles
   confirmDialog: {
@@ -525,10 +607,11 @@ const globalStyles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  annualButton: {
+  annualPricingButton: {
     backgroundColor: 'transparent',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#007AFF',
+    borderStyle: 'solid',
   },
   pricingButtonText: {
     color: '#FFFFFF',
@@ -557,6 +640,64 @@ const globalStyles = StyleSheet.create({
     marginBottom: 8,
   },
 
+  // Archive screen modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+  },
+  modalContent: {
+    flex: 1,
+    padding: 16,
+  },
+  transcriptText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: theme.colors.textPrimary,
+  },
+  noContentText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  
+
+  // Renamed to avoid duplicate property
+  optionButtonStyle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  optionItemText: {
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    marginLeft: 12,
+  },
+  dangerButton: {
+    borderBottomWidth: 0,
+  },
+  dangerText: {
+    color: theme.colors.error,
+  },
 });
 
 export default globalStyles;
