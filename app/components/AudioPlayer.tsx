@@ -13,6 +13,7 @@ interface AudioPlayerProps {
   meetingId?: string;
   onPositionChange?: (position: number) => void;
   onDurationChange?: (duration: number) => void;
+  onPlayingStateChange?: (isPlaying: boolean) => void;
 }
 
 
@@ -39,7 +40,8 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
   duration = 0, 
   meetingId,
   onPositionChange,
-  onDurationChange
+  onDurationChange,
+  onPlayingStateChange
 }, ref) => {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -56,18 +58,33 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
   useEffect(() => {
     const setupAudioSession = async () => {
       try {
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: true,
-          // Use DoNotMix for higher priority audio
-          interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-          // Use DoNotMix for higher priority audio
-          interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
-          shouldDuckAndroid: false, // Don't lower volume for other apps
-          playThroughEarpieceAndroid: false, // Use speaker instead of earpiece
-          allowsRecordingIOS: false, // Optimize for playback
-        });
-        console.log('Enhanced audio session setup successfully');
+        // Platform-specific audio session configuration
+        const isIOS = Platform.OS === 'ios';
+        
+        if (isIOS) {
+          // First, ensure audio is enabled
+          await Audio.setIsEnabledAsync(true);
+          
+          // Configure iOS-specific settings with more conservative values
+          await Audio.setAudioModeAsync({
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: true,
+            interruptionModeIOS: InterruptionModeIOS.DoNotMix,
+            allowsRecordingIOS: false, // Optimize for playback
+          });
+          
+          console.log('iOS-specific audio session setup for large files');
+        } else {
+          // Android configuration
+          await Audio.setAudioModeAsync({
+            staysActiveInBackground: true,
+            interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+            shouldDuckAndroid: false, // Don't lower volume for other apps
+            playThroughEarpieceAndroid: false, // Use speaker instead of earpiece
+          });
+          
+          console.log('Android audio session setup successfully');
+        }
       } catch (error) {
         console.error('Failed to setup audio session:', error);
       }
@@ -76,6 +93,95 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     setupAudioSession();
   }, []);
 
+  // iOS-specific loading function that bypasses file download
+  const loadSoundForIOS = async () => {
+    try {
+      // Normalize audio URL from various formats
+      const normalizedUrl = audioUrl 
+        ? meetingsApi.normalizeAudioUrl(audioUrl, meetingId, retryCount) 
+        : meetingsApi.normalizeAudioUrl(undefined, meetingId, retryCount);
+        
+      if (!normalizedUrl) {
+        setErrorMessage('No audio available for this meeting.');
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('iOS - Meeting ID:', meetingId);
+      console.log('iOS - Original audio URL:', audioUrl);
+      console.log('iOS - Normalized URL:', normalizedUrl);
+      
+      // For iOS, we'll skip the file download and use direct streaming
+      // with specialized parameters to avoid AVFoundationErrorDomain errors
+      const streamingParams = 'stream=true&iosOptimized=true';
+      const streamingUrl = normalizedUrl.includes('?') 
+        ? `${normalizedUrl}&${streamingParams}` 
+        : `${normalizedUrl}?${streamingParams}`;
+      
+      console.log('iOS - Using direct streaming URL:', streamingUrl);
+      
+      // Create iOS-specific playback options with conservative settings
+      const iosPlaybackOptions = {
+        shouldPlay: false,
+        volume: 1.0,
+        progressUpdateIntervalMillis: 200, // Less frequent updates to reduce overhead
+        positionMillis: 0,
+        rate: 1.0,
+        shouldCorrectPitch: true
+      };
+      
+      console.log('iOS - Using specialized playback options:', iosPlaybackOptions);
+      
+      // Load directly from the streaming URL
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: streamingUrl },
+        iosPlaybackOptions,
+        onPlaybackStatusUpdate
+      );
+      
+      setSound(newSound);
+      setIsLoading(false);
+      setErrorMessage(null);
+      console.log('iOS - Audio loaded successfully with direct streaming');
+      
+      // Apply volume boost for better audibility
+      await newSound.setVolumeAsync(1.0);
+      
+    } catch (iosError) {
+      console.error('iOS - Error loading audio with direct streaming:', iosError);
+      
+      // Try with explicit fallback parameters
+      try {
+        const apiBaseUrl = meetingsApi.getBaseUrl();
+        // Use fallback with even more conservative settings
+        const fallbackUrl = `${apiBaseUrl}/meetings/${meetingId}/audio?fallback=true&stream=true&iosOptimized=true&lowMemory=true&t=${Date.now()}`;
+        
+        console.log('iOS - Trying fallback URL:', fallbackUrl);
+        
+        // Load with minimal options
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: fallbackUrl },
+          { 
+            shouldPlay: false,
+            volume: 1.0,
+            progressUpdateIntervalMillis: 500 // Very infrequent updates
+          },
+          onPlaybackStatusUpdate
+        );
+        
+        setSound(newSound);
+        setIsLoading(false);
+        setErrorMessage(null);
+        console.log('iOS - Audio loaded successfully with fallback URL');
+        
+      } catch (fallbackError) {
+        console.error('iOS - All fallback attempts failed:', fallbackError);
+        setErrorMessage('Could not load audio. Please try again.');
+        setIsLoading(false);
+      }
+    }
+  };
+  
   // Load sound on component mount with URL normalization and retry functionality
   useEffect(() => {
     let isMounted = true;
@@ -91,6 +197,13 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
           await sound.unloadAsync();
         }
         
+        // For iOS, use a completely different approach to avoid AVFoundationErrorDomain errors
+        const isIOS = Platform.OS === 'ios';
+        if (isIOS) {
+          await loadSoundForIOS();
+          return;
+        }
+        
         // Normalize the audio URL using the utility from meetingsApi, passing retry count for fallback logic
         const normalizedUrl = meetingsApi.normalizeAudioUrl(audioUrl, meetingId, retryCount);
         
@@ -104,12 +217,24 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
         console.log('Original audio URL:', audioUrl);
         console.log('Normalized URL:', normalizedUrl);
         
-        // New approach: Download the file first, then play it locally
-        // This avoids URL formatting issues that may be causing NSURLErrorDomain errors
+        // Enhanced approach for handling large audio files with iOS-specific optimizations
         const apiBaseUrl = meetingsApi.getBaseUrl();
         // Include fallback parameter based on retry count
         const fallbackParam = retryCount > 0 ? '&fallback=true' : '';
-        const fullApiUrl = `${apiBaseUrl}/meetings/${meetingId}/audio?cb=${Date.now()}${fallbackParam}`;
+        
+        // Platform-specific parameters
+        let platformParams = '';
+        
+        if (isIOS) {
+          // iOS needs smaller chunks and different streaming approach
+          // Use a smaller chunk size (512KB) for iOS to prevent memory issues
+          platformParams = '&stream=true&chunk=true&chunkSize=512000&iosOptimized=true';
+        } else {
+          // Android can handle larger chunks
+          platformParams = '&stream=true&chunk=true&chunkSize=1024000';
+        }
+        
+        const fullApiUrl = `${apiBaseUrl}/meetings/${meetingId}/audio?cb=${Date.now()}${fallbackParam}${platformParams}`;
         
         console.log('Attempting to download audio file from:', fullApiUrl, 'Retry count:', retryCount);
         
@@ -153,18 +278,24 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
             console.log('Using cached audio file:', localFilePath);
           }
           
-          // Now load the sound from the local file
+          // Now load the sound from the local file with platform-specific optimizations
           console.log('Loading sound from local file:', localFilePath);
+          
+          // Create platform-specific playback options
+          const playbackOptions = {
+            shouldPlay: false,
+            volume: 1.0, // Maximum volume
+            progressUpdateIntervalMillis: isIOS ? 100 : 50, // Less frequent on iOS to reduce overhead
+            positionMillis: 0,
+            rate: 1.0, // Normal playback rate
+            shouldCorrectPitch: true, // Better audio quality
+          };
+          
+          console.log(`Using ${Platform.OS}-optimized playback settings:`, playbackOptions);
+          
           const { sound: newSound } = await Audio.Sound.createAsync(
             { uri: localFilePath },
-            { 
-              shouldPlay: false,
-              volume: 1.0, // Maximum volume
-              progressUpdateIntervalMillis: 50, // More frequent updates (50ms) for better sync
-              positionMillis: 0,
-              rate: 1.0, // Normal playback rate
-              shouldCorrectPitch: true, // Better audio quality
-            },
+            playbackOptions,
             onPlaybackStatusUpdate
           );
           
@@ -179,12 +310,29 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
         } catch (downloadError) {
           console.error('Error downloading or loading audio file:', downloadError);
           
-          // If downloading fails, try direct approaches with different URL formats
-          console.log('Trying direct URL as first fallback:', normalizedUrl);
+          // If downloading fails, try direct approaches with different URL formats and iOS-specific optimizations
+          // Add platform-specific streaming parameters
+          const streamingParams = isIOS ? 'stream=true&iosOptimized=true' : 'stream=true';
+          const streamingNormalizedUrl = normalizedUrl.includes('?') 
+            ? `${normalizedUrl}&${streamingParams}` 
+            : `${normalizedUrl}?${streamingParams}`;
+          
+          console.log(`Trying direct URL as first fallback with ${Platform.OS}-optimized streaming:`, streamingNormalizedUrl);
+          
           try {
+            // Create platform-specific playback options
+            const directPlaybackOptions = {
+              shouldPlay: false,
+              volume: 1.0,
+              progressUpdateIntervalMillis: isIOS ? 100 : 50, // Less frequent on iOS
+              positionMillis: 0,
+              rate: 1.0,
+              shouldCorrectPitch: true
+            };
+            
             const { sound: newSound } = await Audio.Sound.createAsync(
-              { uri: normalizedUrl },
-              { shouldPlay: false },
+              { uri: streamingNormalizedUrl },
+              directPlaybackOptions,
               onPlaybackStatusUpdate
             );
             setSound(newSound);
@@ -194,9 +342,13 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
           } catch (directError) {
             console.error('Failed with direct URL:', directError);
             
-            // Try with a raw API endpoint as second fallback
-            const rawApiUrl = `${apiBaseUrl}/meetings/${meetingId}/audio?raw=true&t=${Date.now()}`;
-            console.log('Trying raw API endpoint as second fallback:', rawApiUrl);
+            // Try with a raw API endpoint as second fallback with platform-specific optimizations
+            // Use platform-specific parameters
+            const rawChunkSize = isIOS ? '512000' : '1024000';
+            const iosParam = isIOS ? '&iosOptimized=true' : '';
+            const rawApiUrl = `${apiBaseUrl}/meetings/${meetingId}/audio?raw=true&stream=true&chunk=true&chunkSize=${rawChunkSize}${iosParam}&t=${Date.now()}`;
+            
+            console.log(`Trying raw API endpoint as second fallback with ${Platform.OS}-optimized streaming:`, rawApiUrl);
             
             try {
               const { sound: newSound } = await Audio.Sound.createAsync(
@@ -221,9 +373,13 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
             } catch (rawApiError) {
               console.error('Failed with raw API URL:', rawApiError);
               
-              // Try with explicit fallback parameter as third fallback
-              const fallbackUrl = `${apiBaseUrl}/meetings/${meetingId}/audio?fallback=true&t=${Date.now()}`;
-              console.log('Trying explicit fallback URL as third fallback:', fallbackUrl);
+              // Try with explicit fallback parameter as third fallback with platform-specific optimizations
+              // Use platform-specific parameters
+              const fallbackChunkSize = isIOS ? '512000' : '1024000';
+              const iosFallbackParam = isIOS ? '&iosOptimized=true&lowMemory=true' : '';
+              const fallbackUrl = `${apiBaseUrl}/meetings/${meetingId}/audio?fallback=true&stream=true&chunk=true&chunkSize=${fallbackChunkSize}${iosFallbackParam}&t=${Date.now()}`;
+              
+              console.log(`Trying explicit fallback URL as third fallback with ${Platform.OS}-optimized streaming:`, fallbackUrl);
               
               try {
                 const { sound: newSound } = await Audio.Sound.createAsync(
@@ -261,16 +417,23 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
         if (isMounted) {
           setIsLoading(false);
           
+          // Re-declare isIOS here since it's not accessible in this scope
+          const isIOS = Platform.OS === 'ios';
+          
           // Check if the error is related to missing file (404) or connection issues
           const errorString = String(error);
           console.error('Audio loading error details:', errorString);
           
           if (errorString.includes('404') || 
               errorString.includes('not found') || 
-              errorString.includes('NSURLErrorDomain')) {
-            // For NSURLErrorDomain errors, provide more specific information
-            if (errorString.includes('NSURLErrorDomain')) {
-              console.log('NSURLErrorDomain error detected, trying fallback options');
+              errorString.includes('NSURLErrorDomain') ||
+              errorString.includes('AVFoundationErrorDomain') ||
+              errorString.includes('-11800')) {
+            // For NSURLErrorDomain or AVFoundationErrorDomain errors, provide more specific information
+            if (errorString.includes('NSURLErrorDomain') || errorString.includes('AVFoundationErrorDomain') || errorString.includes('-11800')) {
+              const errorType = isIOS ? 'iOS AVFoundationErrorDomain' : 'Network or media';
+              const platformName = isIOS ? 'iOS' : 'Android';
+              console.log(`${errorType} error detected (possibly due to large file size), trying fallback options with ${platformName}-optimized streaming`);
               if (retryCount < MAX_RETRIES) {
                 setRetryCount(prev => prev + 1);
                 setErrorMessage(`Audio file not found. Trying alternative sources... (${retryCount + 1}/${MAX_RETRIES})`);
@@ -350,7 +513,15 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
       }
     }
     
+    // Only update if the playing state has changed to avoid unnecessary re-renders
+  if (isPlaying !== status.isPlaying) {
     setIsPlaying(status.isPlaying);
+    
+    // Call playing state change callback if provided
+    if (onPlayingStateChange) {
+      onPlayingStateChange(status.isPlaying);
+    }
+  }
   };
 
   // Pause audio (exposed via ref)
@@ -375,7 +546,8 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
       await sound.setRateAsync(1.0, true); // Normal rate with pitch correction for better quality
       
       // On iOS, we can use this to route audio to the built-in speaker
-      if (Platform.OS === 'ios') {
+      const isIOS = Platform.OS === 'ios';
+      if (isIOS) {
         try {
           await Audio.setAudioModeAsync({
             playsInSilentModeIOS: true,
@@ -466,17 +638,39 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(({
     await seekTo(newPosition);
   };
 
-  // Manual retry with explicit fallback
-  const handleRetry = () => {
-    setRetryCount(0); // Reset retry count
-    setErrorMessage(null);
+  // Manual retry with platform-specific optimizations
+  const handleRetry = async () => {
+    const isIOS = Platform.OS === 'ios';
+    const retryMessage = isIOS ? 'Retrying with iOS direct streaming...' : 'Retrying...';
+    setErrorMessage(retryMessage);
+    setRetryCount(prev => prev + 1);
     setIsLoading(true);
     
-    // Force using the fallback URL on manual retry
-    if (meetingId) {
-      // Use a high retry count to ensure fallback parameter is added
-      const forcedFallbackUrl = meetingsApi.normalizeAudioUrl(undefined, meetingId, 999);
-      console.log('Manual retry with forced fallback URL:', forcedFallbackUrl);
+    try {
+      // Unload any existing sound first
+      if (sound) {
+        await sound.unloadAsync();
+        setSound(null);
+      }
+      
+      // For iOS, use a completely different approach on retry
+      if (isIOS) {
+        // Force direct streaming approach for iOS
+        await loadSoundForIOS();
+        return;
+      }
+      
+      // For Android, use the normal approach with fallback parameters
+      if (meetingId) {
+        const apiBaseUrl = meetingsApi.getBaseUrl();
+        const platformParams = '&stream=true&chunk=true&chunkSize=1024000';
+        const fallbackUrl = `${apiBaseUrl}/meetings/${meetingId}/audio?fallback=true${platformParams}&t=${Date.now()}`;
+        console.log(`Manual retry with Android-optimized fallback URL:`, fallbackUrl);
+      }
+    } catch (error) {
+      console.error('Error during retry:', error);
+      setErrorMessage('Failed to retry. Please try again.');
+      setIsLoading(false);
     }
   };
 

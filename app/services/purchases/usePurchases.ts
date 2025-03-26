@@ -20,6 +20,12 @@ export interface PurchaseHookResult {
   refreshPurchases: () => Promise<void>;
 }
 
+// This default export prevents the "missing default export" warning from Expo Router
+// Since this is a utility file, not a route component
+export default function PurchasesHookPage() {
+  return null;
+}
+
 export const usePurchases = (): PurchaseHookResult => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isPurchasing, setIsPurchasing] = useState(false);

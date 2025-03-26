@@ -18,6 +18,12 @@ import { useUser } from '../../context/UserContext';
 // Check if we're in development mode
 const isDevelopmentMode = __DEV__;
 
+// This default export prevents the "missing default export" warning from Expo Router
+// Since this is a utility file, not a route component
+export default function PurchaseServicePage() {
+  return null;
+}
+
 // Mock products for development mode
 const mockProducts = [
   {

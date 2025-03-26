@@ -1,4 +1,6 @@
 import * as Localization from 'expo-localization';
+// import { View } from 'react-native';
+// import React from 'react';
 
 export const getSafeLocale = () => {
   try {
@@ -16,3 +18,9 @@ export const isRTL = () => {
     return false;
   }
 };
+
+// This default export prevents the "missing default export" warning from Expo Router
+// Since this is a utility file, not a route component
+export default function LocaleUtilsPage() {
+  return null; // Return null instead of JSX in a .ts file
+}

@@ -8,6 +8,7 @@ interface TranscriptTextProps {
   currentPosition?: number; // Current position in milliseconds
   totalDuration?: number; // Total duration in milliseconds
   scrollViewRef?: React.RefObject<ScrollView>;
+  isPlaying?: boolean; // Whether audio is currently playing
 }
 
 function TranscriptText({ 
@@ -16,7 +17,8 @@ function TranscriptText({
   numberOfLines, 
   currentPosition = 0, 
   totalDuration = 0,
-  scrollViewRef
+  scrollViewRef,
+  isPlaying = false
 }: TranscriptTextProps) {
   // Split text into paragraphs for processing
   const paragraphs = useMemo(() => {
@@ -28,6 +30,14 @@ function TranscriptText({
   // Calculate which part of the text should be highlighted based on current position
   // Apply a small offset to account for audio processing delay
   const highlightProgress = useMemo(() => {
+    // If audio is not playing, don't highlight anything new
+    // This prevents highlighting from starting before audio actually plays
+    if (!isPlaying) {
+      // Return 0 if we're at the beginning, otherwise keep the last highlight position
+      // This ensures we don't lose highlighting when pausing
+      return currentPosition < 500 ? 0 : Math.min(currentPosition / totalDuration, 1);
+    }
+    
     if (!totalDuration || totalDuration <= 0) return 0;
     
     // Apply a small time offset (100ms) to account for audio processing delay
@@ -36,7 +46,7 @@ function TranscriptText({
     
     // Ensure we don't exceed 1.0 (100%)
     return Math.min(adjustedPosition / totalDuration, 1);
-  }, [currentPosition, totalDuration]);
+  }, [currentPosition, totalDuration, isPlaying]);
 
   // Get screen width to ensure text wrapping
   const screenWidth = Dimensions.get('window').width;

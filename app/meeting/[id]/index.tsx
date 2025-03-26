@@ -57,6 +57,7 @@ export default function MeetingDetails() {
   const [movedToPending, setMovedToPending] = useState<Set<string>>(new Set());
   const [audioPosition, setAudioPosition] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const transcriptScrollViewRef = useRef<ScrollView>(null);
   const audioPlayerRef = useRef<any>(null);
 
@@ -575,6 +576,7 @@ export default function MeetingDetails() {
               currentPosition={audioPosition}
               totalDuration={audioDuration || (meeting?.duration || 0) * 1000}
               scrollViewRef={transcriptScrollViewRef}
+              isPlaying={isAudioPlaying}
               // Add key with audioPosition to force re-render on position changes
               key={`transcript-${Math.floor(audioPosition / 500)}`}
             />
@@ -596,6 +598,7 @@ export default function MeetingDetails() {
                   });
                 }}
                 onDurationChange={(duration: number) => setAudioDuration(duration)}
+                onPlayingStateChange={(playing: boolean) => setIsAudioPlaying(playing)}
               />
             )}
           </View>
