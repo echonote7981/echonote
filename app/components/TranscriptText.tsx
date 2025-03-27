@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Text, StyleSheet, View, Dimensions, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 interface TranscriptTextProps {
   text: string;
@@ -26,7 +27,7 @@ function TranscriptText({
       .split('\n')
       .filter(paragraph => paragraph.trim().length > 0);
   }, [text]);
-
+  const { t } = useTranslation();
   // Calculate which part of the text should be highlighted based on current position
   // Apply a small offset to account for audio processing delay
   const highlightProgress = useMemo(() => {

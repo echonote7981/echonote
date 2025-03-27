@@ -32,5 +32,22 @@
   "change_language": "Change Language",
   "preferences": "Preferences",
   "about": "About",
-  "version": "Version"
+  "version": "Version",
+  
+  "error": "Error",
+  "success": "Success",
+  "title_required": "Title is required",
+  "add_to_calendar": "Add to Calendar",
+  "export_to_calendar": "Export to Calendar",
+  "choose_calendar_service": "Choose a calendar service:",
+  "device_calendar": "Device Calendar",
+  "google_calendar": "Google Calendar",
+  "gmail_calendar": "Gmail Calendar",
+  "outlook_calendar": "Outlook Calendar",
+  "yahoo_calendar": "Yahoo Calendar",
+  "task_added_to_calendar": "Task added to your calendar",
+  "calendar_permission_error": "Failed to add task to calendar. Please check calendar permissions.",
+  "calendar_export_error": "Something went wrong when exporting to calendar",
+  "could_not_open_calendar": "Could not open {{service}} calendar",
+  "terms_and_conditions": "Terms and Conditions"
 }

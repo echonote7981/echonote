@@ -24,10 +24,12 @@ import ActionItemModal from '../components/ActionItemModal';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '../context/UserContext';
+import { useTranslation } from 'react-i18next';
 // Add at the top of your file
 
 
 export default function ActionsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [actions, setActions] = useState<Action[]>([]);
   const [loading, setLoading] = useState(true);

@@ -9,10 +9,12 @@ import theme from '../styles/theme';
 import { actionsApi, Action } from '../services/api';
 import ActionDetailsModal from '../components/ActionDetailsModal';
 import ActionItemModal from '../components/ActionItemModal';
+import { useTranslation } from 'react-i18next';
 
 
 
 export default function CalendarScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [actions, setActions] = useState<Action[]>([]);

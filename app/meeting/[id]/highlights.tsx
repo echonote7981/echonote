@@ -5,8 +5,10 @@ import { Meeting } from '../../services/api';
 import { meetingsApi } from '../../services/api';
 import { meetingDetailsStyles as styles } from '../../styles/common';
 import LoadingScreen from '../../components/LoadingScreen';
+import { useTranslation } from 'react-i18next';
 
 export default function HighlightsPage() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams();
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);

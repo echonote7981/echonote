@@ -5,6 +5,7 @@ import { Action } from '../../services/api';
 import { actionsApi } from '../../services/api';
 import { meetingDetailsStyles as styles } from '../../styles/common';
 import LoadingScreen from '../../components/LoadingScreen';
+import { useTranslation } from 'react-i18next';
 
 const getPriorityStyle = (priority: Action['priority']) => {
   switch (priority) {
@@ -31,6 +32,7 @@ const getStatusStyle = (status: Action['status']) => {
 };
 
 export default function ActionsPage() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams();
   const [actions, setActions] = useState<Action[]>([]);
   const [loading, setLoading] = useState(true);

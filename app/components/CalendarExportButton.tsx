@@ -12,6 +12,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Action } from '../services/api';
 import theme from '../styles/theme';
 import * as calendarExport from '../utils/calendarExport';
+import { useTranslation } from 'react-i18next';
 
 interface CalendarExportButtonProps {
   action: Action;
@@ -19,6 +20,7 @@ interface CalendarExportButtonProps {
 }
 
 export default function CalendarExportButton({ action, style }: CalendarExportButtonProps) {
+  const { t } = useTranslation();
   const [modalVisible, setModalVisible] = useState(false);
 
   const handleExportToNative = async () => {
@@ -27,13 +29,13 @@ export default function CalendarExportButton({ action, style }: CalendarExportBu
       setModalVisible(false);
       
       if (success) {
-        Alert.alert('Success', 'Task added to your calendar');
+        Alert.alert(t('success'), t('task_added_to_calendar'));
       } else {
-        Alert.alert('Error', 'Failed to add task to calendar. Please check calendar permissions.');
+        Alert.alert(t('error'), t('calendar_permission_error'));
       }
     } catch (error) {
       console.error('Calendar export error:', error);
-      Alert.alert('Error', 'Something went wrong when exporting to calendar');
+      Alert.alert(t('error'), t('calendar_export_error'));
     }
   };
 
@@ -43,11 +45,11 @@ export default function CalendarExportButton({ action, style }: CalendarExportBu
       setModalVisible(false);
       
       if (!success) {
-        Alert.alert('Error', `Could not open ${service} calendar`);
+        Alert.alert(t('error'), t('could_not_open_calendar', { service: service }));
       }
     } catch (error) {
       console.error(`Export to ${service} error:`, error);
-      Alert.alert('Error', 'Something went wrong when exporting to calendar');
+      Alert.alert(t('error'), t('calendar_export_error'));
     }
   };
 
@@ -58,7 +60,7 @@ export default function CalendarExportButton({ action, style }: CalendarExportBu
         onPress={() => setModalVisible(true)}
       >
         <MaterialIcons name="event" size={22} color={theme.colors.primary} />
-        <Text style={styles.buttonText}>Add to Calendar</Text>
+        <Text style={styles.buttonText}>{t('add_to_calendar')}</Text>
       </TouchableOpacity>
 
       <Modal
@@ -73,41 +75,41 @@ export default function CalendarExportButton({ action, style }: CalendarExportBu
           onPress={() => setModalVisible(false)}
         >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Export to Calendar</Text>
-            <Text style={styles.modalSubtitle}>Choose a calendar service:</Text>
+            <Text style={styles.modalTitle}>{t('export_to_calendar')}</Text>
+            <Text style={styles.modalSubtitle}>{t('choose_calendar_service')}</Text>
             
             {Platform.OS !== 'web' && (
               <TouchableOpacity style={styles.option} onPress={handleExportToNative}>
                 <MaterialIcons name="event" size={24} color={theme.colors.primary} />
-                <Text style={styles.optionText}>Device Calendar</Text>
+                <Text style={styles.optionText}>{t('device_calendar')}</Text>
               </TouchableOpacity>
             )}
             
             <TouchableOpacity style={styles.option} onPress={() => handleExportToExternal('google')}>
               <MaterialIcons name="event" size={24} color="#4285F4" />
-              <Text style={styles.optionText}>Google Calendar</Text>
+              <Text style={styles.optionText}>{t('google_calendar')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.option} onPress={() => handleExportToExternal('google')}>
               <MaterialIcons name="mail" size={24} color="#DB4437" />
-              <Text style={styles.optionText}>Gmail Calendar</Text>
+              <Text style={styles.optionText}>{t('gmail_calendar')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.option} onPress={() => handleExportToExternal('outlook')}>
               <MaterialIcons name="event" size={24} color="#0078D4" />
-              <Text style={styles.optionText}>Outlook Calendar</Text>
+              <Text style={styles.optionText}>{t('outlook_calendar')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.option} onPress={() => handleExportToExternal('yahoo')}>
               <MaterialIcons name="event" size={24} color="#6001D2" />
-              <Text style={styles.optionText}>Yahoo Calendar</Text>
+              <Text style={styles.optionText}>{t('yahoo_calendar')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.cancelButton} 
               onPress={() => setModalVisible(false)}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

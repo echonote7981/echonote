@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 
 type UserContextType = {
   isPremium: boolean;
@@ -22,6 +23,7 @@ const UserContext = createContext<UserContextType>({
 });
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
+  const { t } = useTranslation();
   const [isPremium, setIsPremium] = useState(false);
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
   const [hasAcceptedPrivacyPolicy, setHasAcceptedPrivacyPolicy] = useState(false);

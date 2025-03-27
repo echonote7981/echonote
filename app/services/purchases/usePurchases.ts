@@ -9,6 +9,7 @@ import {
   checkSubscriptionStatus,
   SUBSCRIPTION_SKUS
 } from './purchaseService';
+import { useTranslation } from 'react-i18next'
 
 export interface PurchaseHookResult {
   products: Product[];
@@ -27,6 +28,7 @@ export default function PurchasesHookPage() {
 }
 
 export const usePurchases = (): PurchaseHookResult => {
+  const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

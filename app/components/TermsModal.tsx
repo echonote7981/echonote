@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView } from 'rea
 import { MaterialIcons } from '@expo/vector-icons';
 import theme from '../styles/theme';
 import { useUser } from '../context/UserContext';
+import { useTranslation } from 'react-i18next';
 
 interface TermsModalProps {
   visible: boolean;
@@ -13,7 +14,7 @@ interface TermsModalProps {
 
 export default function TermsModal({ visible, onClose, onAccept, showAcceptButton = false }: TermsModalProps) {
   const { hasAcceptedTerms, setHasAcceptedTerms } = useUser();
-
+  const { t } = useTranslation();
   const handleAcceptTerms = () => {
     setHasAcceptedTerms(true);
     if (onAccept) {

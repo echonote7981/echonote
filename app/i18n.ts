@@ -1,5 +1,5 @@
 import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next'; // ✅ Required
+import { initReactI18next } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
 
@@ -19,16 +19,16 @@ import zhTW from './locales/zh-TW.json';
 
 // Available languages
 const resources = {
-  en: { translation: { welcome: "Welcome to EchoNotes", settings: "Settings" } },
-  fr: { translation: { welcome: "Bienvenue à EchoNotes", settings: "Paramètres" } },
-  es: { translation: { welcome: "¡Bienvenido a EchoNotes!", settings: "Configuraciones" } },
-  de: { translation: { welcome: "Willkommen bei EchoNotes", settings: "Einstellungen" } },
-  it: { translation: { welcome: "Benvenuto in EchoNotes", settings: "Impostazioni" } },
-  ar: { translation: { welcome: "مرحبًا بكم في EchoNotes", settings: "الإعدادات" } },
-  ja: { translation: { welcome: "EchoNotesへようこそ", settings: "設定" } },
-  ko: { translation: { welcome: "EchoNotes에 오신 것을 환영합니다", settings: "설정" } },
-  nl: { translation: { welcome: "Welkom bij EchoNotes", settings: "Instellingen" } },
-  pt: { translation: { welcome: "Bem-vindo ao EchoNotes", settings: "Configurações" } },    
+  en: { translation: en },
+  fr: { translation: fr },
+  es: { translation: es },
+  de: { translation: de },
+  it: { translation: it },
+  ar: { translation: ar },
+  ja: { translation: ja },
+  ko: { translation: ko },
+  nl: { translation: nl },
+  pt: { translation: pt },    
   'zh-CN': { translation: zhCN },
   'zh-TW': { translation: zhTW },
 };

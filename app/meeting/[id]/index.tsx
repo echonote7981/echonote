@@ -14,6 +14,7 @@ import transcriptAnalysis from '../../utils/transcriptAnalysis';
 import { StyleSheet } from 'react-native';
 import { Alert } from 'react-native';
 import AudioPlayer from '../../components/AudioPlayer';
+import { useTranslation } from 'react-i18next';
 
 const MAX_VISIBLE_LINES = 5;
 
@@ -42,6 +43,7 @@ const getStatusStyle = (status: Action['status']) => {
 };
 
 export default function MeetingDetails() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [meeting, setMeeting] = useState<Meeting | null>(null);

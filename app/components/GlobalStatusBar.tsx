@@ -1,12 +1,14 @@
 import React from 'react';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { Platform, StatusBar as RNStatusBar, View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 /**
  * GlobalStatusBar component to ensure consistent status bar appearance
  * across the entire application with a colored background and white text/icons
  */
 export const GlobalStatusBar = () => {
+  const { t } = useTranslation();
   // Set status bar background color and text color
   React.useEffect(() => {
     if (Platform.OS === 'android') {

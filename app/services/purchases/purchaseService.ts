@@ -14,6 +14,7 @@ import {
   Product
 } from 'react-native-iap';
 import { useUser } from '../../context/UserContext';
+import { useTranslation } from 'react-i18next';
 
 // Check if we're in development mode
 const isDevelopmentMode = __DEV__;
@@ -21,6 +22,7 @@ const isDevelopmentMode = __DEV__;
 // This default export prevents the "missing default export" warning from Expo Router
 // Since this is a utility file, not a route component
 export default function PurchaseServicePage() {
+  const { t } = useTranslation();
   return null;
 }
 

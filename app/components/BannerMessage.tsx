@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useState } from 'react';
 import { bannerMessageStyles } from '../styles/bannerMessage';
+import { useTranslation } from 'react-i18next';
 
 // In BannerMessage.tsx
 interface BannerMessageProps {
@@ -10,6 +11,7 @@ interface BannerMessageProps {
   }
   
   export default function BannerMessage({ remainingMinutes, onUpgrade }: BannerMessageProps) {
+    const { t } = useTranslation();
     const [showBanner, setShowBanner] = useState(true);
     
     return (

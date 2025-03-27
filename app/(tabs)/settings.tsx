@@ -5,6 +5,7 @@ import { ThemedText } from '../../components/ThemedText';
 import LanguageSettings from '../../components/LanguageSettings';
 import { useTranslation } from 'react-i18next';
 import { StatusBar } from 'expo-status-bar';
+  
 
 export default function SettingsScreen() {
   const { t } = useTranslation();

@@ -22,6 +22,7 @@ import theme from '../styles/theme';
 import globalStyles from '../styles/globalStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CalendarExportButton from './CalendarExportButton';
+import { useTranslation } from 'react-i18next';
 
 interface ActionItemModalProps {
   visible: boolean;
@@ -35,6 +36,7 @@ interface ActionItemModalProps {
 }
 
 function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed, onCompleteTask, initialAction, isPendingFolder = false }: ActionItemModalProps) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState(initialAction?.title || '');
   const [notes, setNotes] = useState(initialAction?.notes || '');
   const [details, setDetails] = useState(initialAction?.details || '');
@@ -107,7 +109,7 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
 
   const handleSave = () => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Title is required');
+      Alert.alert(t('error'), t('title_required'));
       return;
     }
 

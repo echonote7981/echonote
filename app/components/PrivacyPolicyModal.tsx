@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView } from 'rea
 import { MaterialIcons } from '@expo/vector-icons';
 import theme from '../styles/theme';
 import { useUser } from '../context/UserContext';
+import { useTranslation } from 'react-i18next';
+
 
 interface PrivacyPolicyModalProps {
   visible: boolean;
@@ -13,7 +15,7 @@ interface PrivacyPolicyModalProps {
 
 export default function PrivacyPolicyModal({ visible, onClose, onAccept, showAcceptButton = false }: PrivacyPolicyModalProps) {
   const { hasAcceptedPrivacyPolicy, setHasAcceptedPrivacyPolicy } = useUser();
-
+  const { t } = useTranslation();
   const handleAcceptPrivacyPolicy = () => {
     setHasAcceptedPrivacyPolicy(true);
     if (onAccept) {

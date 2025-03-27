@@ -4,11 +4,13 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Link, useRouter, useFocusEffect } from 'expo-router';
 import { meetingsApi, Meeting } from '../services/api';
 import meetingsStyles from '../styles/meetings';
+import { useTranslation } from 'react-i18next';
 
 // Time interval for polling in ms (5 seconds)
 const POLLING_INTERVAL = 5000;
 
 export default function MeetingsScreen() {
+  const { t } = useTranslation();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);

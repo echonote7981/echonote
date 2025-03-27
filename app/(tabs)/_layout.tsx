@@ -3,8 +3,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { View, Text, StyleSheet } from 'react-native';
 import HamburgerMenu from '../components/HamburgerMenu';
 import theme from '../styles/theme';
+import { useTranslation } from 'react-i18next';
 
 export default function TabLayout() {
+  const { t } = useTranslation();
+  
   const styles = StyleSheet.create({
     headerTitle: {
       fontSize: 20,
@@ -35,28 +38,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Record',
+          title: t('recording'),
           tabBarIcon: ({ color }) => <MaterialIcons name="mic" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="meetings"
         options={{
-          title: 'Meetings',
+          title: t('meetings'),
           tabBarIcon: ({ color }) => <MaterialIcons name="list" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="actions"
         options={{
-          title: 'Actions',
+          title: t('actions'),
           tabBarIcon: ({ color }) => <MaterialIcons name="check-circle" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="archived"
         options={{
-          title: 'Archives',
+          title: t('archives'),
           tabBarIcon: ({ color }) => <MaterialIcons name="archive" size={24} color={color} />,
         }}
       />

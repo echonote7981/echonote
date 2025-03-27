@@ -6,8 +6,10 @@ import { meetingsApi } from '../../services/api';
 import TranscriptText from '../../components/TranscriptText';
 import { meetingDetailsStyles as styles } from '../../styles/common';
 import LoadingScreen from '../../components/LoadingScreen';
+import { useTranslation } from 'react-i18next';
 
 export default function TranscriptPage() {
+  const { t } = useTranslation()
   const { id } = useLocalSearchParams();
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);

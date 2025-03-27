@@ -20,6 +20,7 @@ import actionStyles from '../styles/actions';
 import globalStyles from '../styles/globalStyles';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CalendarExportButton from './CalendarExportButton';
+import { useTranslation } from 'react-i18next';
 
 
 
@@ -42,6 +43,7 @@ export default function ActionDetailsModal({
   onMarkAsReviewed,
   onReopen,
 }: ActionDetailsModalProps) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState(action.title || '');
   const [notes, setNotes] = useState(action.notes || '');
   const [dueDate, setDueDate] = useState<Date>(action.dueDate ? new Date(action.dueDate) : new Date());

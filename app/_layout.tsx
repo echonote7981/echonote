@@ -4,11 +4,12 @@ import * as SplashScreen from 'expo-splash-screen';
 import GlobalStatusBar from './components/GlobalStatusBar';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
-import { View } from 'react-native';
-import '../app/i18n';
+import { View, I18nManager } from 'react-native';
+import './i18n';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import CustomSplashScreen from './components/SplashScreen';
+import { LanguageProvider } from './context/LanguageContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -33,12 +34,12 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <LanguageProvider>
       <GlobalStatusBar />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="meeting" options={{ headerShown: false }} />
       </Stack>
-    </>
+    </LanguageProvider>
   );
 }

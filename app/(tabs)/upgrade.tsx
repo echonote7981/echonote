@@ -7,9 +7,11 @@ import globalStyles from '../styles/globalStyles';
 import TermsModal from '../components/TermsModal';
 import PrivacyPolicyModal from '../components/PrivacyPolicyModal';
 import { usePurchases } from '../services/purchases/usePurchases';
+import { useTranslation } from 'react-i18next';
 
 export default function UpgradeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { setIsPremium, hasAcceptedTerms, setHasAcceptedTerms, hasAcceptedPrivacyPolicy, setHasAcceptedPrivacyPolicy } = useUser();
   
   // Use our purchases hook

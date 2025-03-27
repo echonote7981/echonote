@@ -9,10 +9,12 @@ import theme from '../styles/theme';
 import globalStyles from '../styles/globalStyles';
 import { useRouter } from 'expo-router';
 import TranscriptText from '../components/TranscriptText';
+import { useTranslation } from 'react-i18next';
 
 type ArchiveTab = 'meetings' | 'tasks';
 
 export default function ArchivedScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [archivedMeetings, setArchivedMeetings] = useState<ArchivedMeeting[]>([]);
   const [archivedActions, setArchivedActions] = useState<Action[]>([]);

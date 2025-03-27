@@ -18,6 +18,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import recordStyles from '../styles/record';
 import { AppState } from 'react-native';
 import globalStyles from '../styles/globalStyles';
+import { useTranslation } from 'react-i18next';
+
 
 const formatTime = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
@@ -26,6 +28,7 @@ const formatTime = (seconds: number): string => {
 };
 
 export default function RecordScreen() {
+  const { t } = useTranslation();
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [title, setTitle] = useState('');
   const [isPaused, setIsPaused] = useState(false);
