@@ -431,8 +431,8 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
-                  returnKeyType="done"
-                  blurOnSubmit={true}
+                  returnKeyType="default"
+                  blurOnSubmit={false}
                 />
 
                 {/* Calendar Export Button - only show for existing actions */}
