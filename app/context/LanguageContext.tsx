@@ -21,6 +21,7 @@ const LanguageContext = createContext<LanguageContextType>({
 export const useLanguage = () => useContext(LanguageContext);
 
 // Provider component
+// We're using a named export for the actual provider
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const [currentLanguage, setCurrentLanguage] = useState(i18n.language || 'en');
   const [isRTL, setIsRTL] = useState(false);
@@ -111,3 +112,8 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     </LanguageContext.Provider>
   );
 };
+
+// Added default export for expo-router compatibility
+export default function LanguageContextComponent() {
+  return null;
+}

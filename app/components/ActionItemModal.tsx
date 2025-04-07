@@ -258,7 +258,37 @@ function ActionItemModal({ visible, onClose, onSave, onDelete, onMarkAsReviewed,
                           if (status === 'not_reviewed') {
                             setStatus('pending');
                           } else if (status === 'pending') {
+                            // When changing from In Progress to Completed, also trigger the complete task action
                             setStatus('completed');
+                            
+                            // If this is an existing task in the pending folder and we have the complete function,
+                            // call it to move the task to completed tasks
+                            if (initialAction && initialAction.id && isPendingFolder && onCompleteTask) {
+                              // Show confirmation dialog
+                              Alert.alert(
+                                'Complete Task', 
+                                'Mark this task as completed and move it to completed tasks?',
+                                [
+                                  {
+                                    text: 'Cancel',
+                                    style: 'cancel',
+                                    onPress: () => {
+                                      // Revert status change if user cancels
+                                      setStatus('pending');
+                                    }
+                                  },
+                                  {
+                                    text: 'Complete',
+                                    style: 'default',
+                                    onPress: () => {
+                                      // Complete the task and close the modal
+                                      onCompleteTask(initialAction.id);
+                                      handleClose();
+                                    }
+                                  }
+                                ]
+                              );
+                            }
                           } else {
                             setStatus('not_reviewed');
                           }

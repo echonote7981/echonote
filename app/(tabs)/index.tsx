@@ -41,8 +41,8 @@ export default function RecordScreen() {
   const { isPremium } = useUser();
   const isGuestUser = !isPremium;
   const [showUpgradeBanner, setShowUpgradeBanner] = useState(false);
-  const [remainingFreeTime, setRemainingFreeTime] = useState(14400); // 4 hours in seconds
-  const MAX_FREE_RECORDING_TIME = 14400; // 4 hours in seconds
+  const [remainingFreeTime, setRemainingFreeTime] = useState(10800); // 3 hours in seconds
+  const MAX_FREE_RECORDING_TIME = 10800; // 3 hours in seconds
 
   // Banner will be rendered in the return statement
 
@@ -98,7 +98,8 @@ export default function RecordScreen() {
         title,
         timer,
         isPaused,
-        isRecording: true
+        isRecording: true,
+        remainingFreeTime: isGuestUser ? remainingFreeTime : MAX_FREE_RECORDING_TIME
       };
       AsyncStorage.setItem('recordingState', JSON.stringify(state));
     }
@@ -116,6 +117,11 @@ export default function RecordScreen() {
             setTitle(state.title);
             setTimer(state.timer);
             setIsPaused(state.isPaused);
+            
+            // Restore remaining free time if present in saved state
+            if (isGuestUser && state.remainingFreeTime !== undefined) {
+              setRemainingFreeTime(state.remainingFreeTime);
+            }
           } else {
             await clearRecordingState();
           }
@@ -174,6 +180,19 @@ export default function RecordScreen() {
 
   const startRecording = async () => {
     try {
+      // Check if user has exhausted free time
+      if (isGuestUser && remainingFreeTime <= 0) {
+        Alert.alert(
+          'Free Recording Limit Reached',
+          'You have used all your free recording time. Upgrade to Premium for unlimited recording.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Upgrade', onPress: () => router.push('/upgrade' as any) }
+          ]
+        );
+        return;
+      }
+
       if (!title.trim()) {
         Alert.alert('Please enter a Title for the recording');
         return;
@@ -191,6 +210,30 @@ export default function RecordScreen() {
       // Start timer
       const interval = setInterval(() => {
         setTimer((prev) => prev + 1);
+        
+        // Decrement remaining free time if user is not premium
+        if (isGuestUser) {
+          setRemainingFreeTime(prevTime => {
+            const newTime = Math.max(0, prevTime - 1); // Ensure it doesn't go below 0
+            
+            // Stop recording if remaining time reaches 0
+            if (newTime === 0) {
+              Alert.alert(
+                'Free Recording Limit Reached',
+                'You have used all your free recording time. Your recording has been saved. Upgrade to Premium for unlimited recording.',
+                [
+                  { text: 'View Recording', onPress: stopRecording },
+                  { text: 'Upgrade', onPress: () => {
+                    stopRecording();
+                    router.push('/upgrade' as any);
+                  }}
+                ]
+              );
+            }
+            
+            return newTime;
+          });
+        }
       }, 1000);
       setTimerInterval(interval);
 
@@ -253,6 +296,19 @@ export default function RecordScreen() {
         // Stop the recording
         await currentRecording.stopAndUnloadAsync();
 
+        // Update user stats if user is not premium
+        if (isGuestUser) {
+          try {
+            // Update remaining time in the API
+            await actionsApi.updateUserStats({
+              remainingFreeTime: remainingFreeTime
+            });
+            console.log('Updated remaining free time:', remainingFreeTime);
+          } catch (statsError) {
+            console.error('Failed to update user stats:', statsError);
+          }
+        }
+
         // Upload the recording
         await meetingsApi.create({
           title,
@@ -313,9 +369,13 @@ export default function RecordScreen() {
 
         <View style={recordStyles.buttonContainer}>
           <TouchableOpacity
-            style={[recordStyles.recordButton, recording && recordStyles.stopButton]}
+            style={[
+              recordStyles.recordButton, 
+              recording && recordStyles.stopButton,
+              isGuestUser && remainingFreeTime <= 0 && !recording && { opacity: 0.5 }
+            ]}
             onPress={recording ? stopRecording : startRecording}
-            disabled={isProcessing}
+            disabled={isProcessing || (isGuestUser && remainingFreeTime <= 0 && !recording)}
           >
             <MaterialIcons
               name={recording ? "stop" : "mic"}

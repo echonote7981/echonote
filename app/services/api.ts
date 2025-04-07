@@ -370,8 +370,15 @@ export const meetingsApi = {
   // Get all archived meetings
   async getArchived(): Promise<ArchivedMeeting[]> {
     try {
+      console.log('Fetching archived meetings...');
       const response = await api.get('/meetings/archived');
-      return response.data;
+      console.log('Archived meetings response:', response.data);
+      if (Array.isArray(response.data)) {
+        console.log(`Found ${response.data.length} archived meetings`);
+      } else {
+        console.warn('Unexpected response format for archived meetings:', typeof response.data);
+      }
+      return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       console.error('Failed to fetch archived meetings:', error);
       throw error;
@@ -383,6 +390,7 @@ export const meetingsApi = {
     try {
       console.log(`Restoring archived meeting with ID: ${id}`);
       const response = await api.post(`/meetings/archived/${id}/restore`, {});
+      console.log('Restored meeting response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Failed to restore archived meeting:', error);
@@ -398,7 +406,7 @@ export const meetingsApi = {
       console.log(`Attempting to delete archived meeting with ID: ${id}`);
       // Try the regular meetings endpoint
       const response = await api.delete(`/meetings/${id}`);
-      console.log('Successfully deleted meeting from server');
+      console.log('Deleted meeting response:', response.data);
       return response.data;
     } catch (error: any) {
       // If it's a 404 error, we'll just return silently without throwing
@@ -432,6 +440,21 @@ export const meetingsApi = {
       const response = await api.post(`/meetings/${id}/archive`, {
         highlights: meeting.highlights || []
       });
+      
+      console.log('Archive response:', response.data);
+      
+      // Verify the archive status with an immediate fetch
+      setTimeout(async () => {
+        try {
+          const archived = await this.getArchived();
+          console.log('Archive verification - current archived meetings:', archived.length);
+          if (archived.length > 0) {
+            console.log('Sample archived meeting:', archived[0].title);
+          }
+        } catch (err) {
+          console.error('Archive verification failed:', err);
+        }
+      }, 1000); // Check after 1 second
       
       return response.data;
     } catch (error) {
@@ -701,7 +724,17 @@ export const actionsApi = {
       return response.data;
     } catch (error) {
       console.error('Failed to get user stats:', error);
-      return { totalRecordedTime: 0, remainingFreeTime: 14400 }; // Default to 4 hours (in seconds)
+      return { totalRecordedTime: 0, remainingFreeTime: 10800 }; // Default to 3 hours (in seconds)
+    }
+  },
+  updateUserStats: async (updates: { remainingFreeTime: number }): Promise<{ totalRecordedTime: number; remainingFreeTime: number }> => {
+    try {
+      const response = await api.post('/users/stats', updates);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to update user stats:', error);
+      // For now, just return the updates to simulate a successful update
+      return { totalRecordedTime: 0, remainingFreeTime: updates.remainingFreeTime };
     }
   },
 };

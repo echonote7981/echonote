@@ -22,8 +22,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import CalendarExportButton from './CalendarExportButton';
 import { useTranslation } from 'react-i18next';
 
-
-
 interface ActionDetailsModalProps {
   visible: boolean;
   action: Action;
@@ -31,7 +29,8 @@ interface ActionDetailsModalProps {
   onSave?: (actionId: string, updates: { title: string; notes: string }) => Promise<void>;
   onComplete?: (actionId: string) => Promise<void>;
   onMarkAsReviewed?: (actionId: string) => Promise<void>;
-  onReopen?: (actionId: string) => Promise<void>; // Add reopen handler prop
+  onReopen?: (actionId: string) => Promise<void>; 
+  readOnly?: boolean; 
 }
 
 export default function ActionDetailsModal({
@@ -42,6 +41,7 @@ export default function ActionDetailsModal({
   onComplete,
   onMarkAsReviewed,
   onReopen,
+  readOnly = false, 
 }: ActionDetailsModalProps) {
   const { t } = useTranslation();
   const [title, setTitle] = useState(action.title || '');
@@ -54,7 +54,6 @@ export default function ActionDetailsModal({
   const isNotReviewed = action.status === 'not_reviewed';
   const isPending = action.status === 'pending';
   
-  // Parse the title to extract heading and content if needed
   let heading = title;
   let content = '';
   
@@ -65,7 +64,8 @@ export default function ActionDetailsModal({
   }
 
   const handleKeyboardShow = (event: KeyboardEvent) => {
-    // Delay scrolling to ensure the keyboard is fully shown
+    if (readOnly) return;
+    
     setTimeout(() => {
       notesInputRef.current?.measure((x, y, width, height, pageX, pageY) => {
         scrollViewRef.current?.scrollTo({
@@ -110,7 +110,6 @@ export default function ActionDetailsModal({
     }
   };
 
-  // Add function to handle reopening a task
   const handleReopen = async () => {
     try {
       await onReopen?.(action.id);
@@ -137,7 +136,7 @@ export default function ActionDetailsModal({
       onRequestClose={onClose}
     >
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <View style={globalStyles.container}>
+      <View style={[globalStyles.container, { flex: 1 }]}>
     
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -145,8 +144,8 @@ export default function ActionDetailsModal({
         keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={actionStyles.modalOverlay}>
-            <View style={actionStyles.modalContent}>
+          <View style={[actionStyles.modalOverlay, { flex: 1 }]}>
+            <View style={[actionStyles.modalContent, { flex: 1 }]}>
               <View style={actionStyles.modalHeader}>
                 <Text style={actionStyles.modalHeaderTitle}>
                   {isNotReviewed ? 'New Action Item' : 'Edit Action Item'}
@@ -158,9 +157,11 @@ export default function ActionDetailsModal({
 
               <ScrollView 
                 ref={scrollViewRef}
-                style={actionStyles.modalScrollContent}
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={true}
+                bounces={true}
               >
                 <View style={actionStyles.modalFormContent}>
                   {/* Title Section */}
@@ -168,7 +169,7 @@ export default function ActionDetailsModal({
                     <View style={actionStyles.sectionHeader}>
                       <Text style={actionStyles.sectionLabel}>Title</Text>
                       <View style={actionStyles.statusContainer}>
-                        <MaterialIcons 
+                        <MaterialIcons
                           name={isNotReviewed ? 'radio-button-unchecked' : 
                                 isPending ? 'hourglass-empty' : 'check-circle'} 
                           size={18} 
@@ -186,130 +187,197 @@ export default function ActionDetailsModal({
                       </View>
                     </View>
                     
-                    <TextInput
-                      style={actionStyles.titleInput}
-                      value={heading}
-                      onChangeText={setTitle}
-                      placeholder="Enter title"
-                      placeholderTextColor={theme.colors.textSecondary}
-                    />
+                    {readOnly ? (
+                      <View style={[actionStyles.titleInput, { padding: 12 }]}>
+                        <Text style={{ color: theme.colors.textPrimary, fontWeight: 'bold' }}>
+                          {heading}
+                        </Text>
+                      </View>
+                    ) : (
+                      <TextInput
+                        style={actionStyles.titleInput}
+                        value={heading}
+                        onChangeText={(text) => {
+                          if (content) {
+                            setTitle(`${text}\n\n${content}`);
+                          } else {
+                            setTitle(text);
+                          }
+                        }}
+                        placeholder="Task title"
+                        placeholderTextColor={theme.colors.textSecondary}
+                        multiline
+                      />
+                    )}
                     
-                    {/* Details Section - Editable textarea for content */}
-                    {content ? (
-                      <View style={actionStyles.detailsSection}>
-                        <Text style={actionStyles.sectionLabel}>Details</Text>
+                    {/* Content Section (if split from title) */}
+                    {content && (
+                      readOnly ? (
+                        <View style={[actionStyles.detailsInput, { padding: 12 }]}>
+                          <Text style={{ color: theme.colors.textPrimary }}>
+                            {content}
+                          </Text>
+                        </View>
+                      ) : (
                         <TextInput
                           style={actionStyles.detailsInput}
                           value={content}
-                          onChangeText={(newContent) => {
-                            // Update title while preserving the heading
-                            const updatedTitle = heading + '\n\n' + newContent;
-                            setTitle(updatedTitle);
+                          onChangeText={(text) => {
+                            setTitle(`${heading}\n\n${text}`);
                           }}
-                          multiline
-                          placeholder="View and edit details here..."
+                          placeholder="Task details"
                           placeholderTextColor={theme.colors.textSecondary}
+                          multiline
                         />
-                      </View>
-                    ) : null}
+                      )
+                    )}
                   </View>
                   
-                  {/* Priority Section */}
+                  {/* Priority Section - Moved to top as requested */}
                   <View style={actionStyles.prioritySection}>
                     <Text style={actionStyles.sectionLabel}>Priority</Text>
-                    <View style={actionStyles.priorityBadge}>
-                      <Text style={actionStyles.priorityBadgeText}>
-                        {action.priority || 'Medium'}
-                      </Text>
+                    <View style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <View style={[actionStyles.priorityBadge]}>
+                        <Text style={{
+                          color: '#FFFFFF',
+                          fontWeight: '500',
+                          fontSize: 14
+                        }}>
+                          {action.priority || 'Medium'}
+                        </Text>
+                      </View>
+                      
+                      {/* Due date section */}
+                      <View style={{
+                        flexDirection: 'row',
+                        alignItems: 'center'
+                      }}>
+                        <MaterialIcons name="calendar-today" size={16} color="#999" style={{marginRight: 5}} />
+                        <Text style={{
+                          color: theme.colors.textSecondary,
+                          fontSize: 14
+                        }}>
+                          {action.dueDate ? new Date(action.dueDate).toLocaleDateString() : 'No due date'}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                   
-                  {/* Due Date Section */}
-                  <View style={actionStyles.dueDateSection}>
-                    <Text style={actionStyles.sectionLabel}>Due Date</Text>
-                    <View style={actionStyles.dateDisplay}>
-                      <Text style={actionStyles.dateText}>
-                        {dueDate.toLocaleDateString()}
-                      </Text>
-                      <MaterialIcons name="calendar-today" size={18} color="#AAAAAA" />
-                    </View>
+                  {/* Action Item Details Section */}
+                  <View style={actionStyles.detailsSection}>
+                    <Text style={actionStyles.sectionLabel}>Action Item Details</Text>
+                    {readOnly ? (
+                      <View style={[actionStyles.detailsInput, { padding: 12 }]}>
+                        <Text style={{ color: theme.colors.textPrimary }}>
+                          {action.details || 'No details available'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <TextInput
+                        style={actionStyles.detailsInput}
+                        value={action.details}
+                        onChangeText={() => {}}
+                        multiline
+                        editable={false}
+                        placeholder="View details here..."
+                        placeholderTextColor={theme.colors.textSecondary}
+                      />
+                    )}
                   </View>
                   
                   {/* Notes Section */}
                   <View style={actionStyles.notesSection}>
                     <Text style={actionStyles.sectionLabel}>Notes</Text>
-                    <TextInput
-                      ref={notesInputRef}
-                      style={actionStyles.notesInput}
-                      value={notes}
-                      onChangeText={setNotes}
-                      multiline
-                      placeholder="Add notes here..."
-                      placeholderTextColor={theme.colors.textSecondary}
-                      autoCapitalize="sentences"
-                      onFocus={() => {
-                        // Scroll to input when focused
-                        notesInputRef.current?.measure((x, y, width, height, pageX, pageY) => {
-                          scrollViewRef.current?.scrollTo({
-                            y: pageY,
-                            animated: true,
+                    {readOnly ? (
+                      <View style={[actionStyles.notesInput, { padding: 12 }]}>
+                        <Text style={{ color: theme.colors.textPrimary }}>
+                          {notes.trim() ? notes : 'No notes available'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <TextInput
+                        ref={notesInputRef}
+                        style={actionStyles.notesInput}
+                        value={notes}
+                        onChangeText={setNotes}
+                        multiline
+                        placeholder="Add notes here..."
+                        placeholderTextColor={theme.colors.textSecondary}
+                        autoCapitalize="sentences"
+                        onFocus={() => {
+                          notesInputRef.current?.measure((x, y, width, height, pageX, pageY) => {
+                            scrollViewRef.current?.scrollTo({
+                              y: pageY,
+                              animated: true,
+                            });
                           });
-                        });
-                      }}
-                    />
+                        }}
+                      />
+                    )}
                   </View>
 
-                  {/* Calendar Export Button */}
-                  {!isNotReviewed && (
-                    <CalendarExportButton 
-                      action={action} 
-                      style={actionStyles.exportButton} 
-                    />
-                  )}
+                  {/* Calendar Export Button removed as requested */}
                   
                   <View style={actionStyles.modalButtonContainer}>
                     <View style={actionStyles.modalBottomButtons}>
-                      {isNotReviewed && (
+                      {/* For read-only mode, just show a close button */}
+                      {readOnly ? (
                         <TouchableOpacity
-                          style={[actionStyles.modalButton, actionStyles.notStartedButton]}
-                          onPress={handleMarkAsReviewed}
+                          style={[actionStyles.modalButton, actionStyles.cancelButton]}
+                          onPress={onClose}
                         >
-                          <Text style={actionStyles.modalButtonText}>Not Started</Text>
-                        </TouchableOpacity>
-                      )}
-                      
-                      {/* Show either Complete Task or Reopen button based on status */}
-                      {isCompleted ? (
-                        <TouchableOpacity
-                          style={[actionStyles.modalButton, actionStyles.completeButton]}
-                          onPress={handleReopen}
-                        >
-                          <Text style={actionStyles.modalButtonText}>Reopen</Text>
+                          <Text style={actionStyles.modalButtonText}>Close</Text>
                         </TouchableOpacity>
                       ) : (
-                        <TouchableOpacity
-                          style={[actionStyles.modalButton, actionStyles.completeButton]}
-                          onPress={handleComplete}
-                        >
-                          <Text style={actionStyles.modalButtonText}>Complete Task</Text>
-                        </TouchableOpacity>
-                      )}
-                      
-                      {/* Only show Cancel and Save buttons for non-completed tasks */}
-                      {!isCompleted && (
+                        /* Standard buttons for editable mode */
                         <>
-                          <TouchableOpacity
-                            style={[actionStyles.modalButton, actionStyles.cancelButton]}
-                            onPress={onClose}
-                          >
-                            <Text style={actionStyles.modalButtonText}>Cancel</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={[actionStyles.modalButton, actionStyles.saveButton]}
-                            onPress={handleSave}
-                          >
-                            <Text style={actionStyles.modalButtonText}>Save</Text>
-                          </TouchableOpacity>
+                          {isNotReviewed && (
+                            <TouchableOpacity
+                              style={[actionStyles.modalButton, actionStyles.notStartedButton]}
+                              onPress={handleMarkAsReviewed}
+                            >
+                              <Text style={actionStyles.modalButtonText}>Not Started</Text>
+                            </TouchableOpacity>
+                          )}
+                          
+                          {/* Show either Complete Task or Reopen button based on status */}
+                          {isCompleted ? (
+                            <TouchableOpacity
+                              style={[actionStyles.modalButton, actionStyles.completeButton]}
+                              onPress={handleReopen}
+                            >
+                              <Text style={actionStyles.modalButtonText}>Reopen</Text>
+                            </TouchableOpacity>
+                          ) : (
+                            <TouchableOpacity
+                              style={[actionStyles.modalButton, actionStyles.completeButton]}
+                              onPress={handleComplete}
+                            >
+                              <Text style={actionStyles.modalButtonText}>Complete Task</Text>
+                            </TouchableOpacity>
+                          )}
+                          
+                          {/* Only show Cancel and Save buttons for non-completed tasks */}
+                          {!isCompleted && (
+                            <>
+                              <TouchableOpacity
+                                style={[actionStyles.modalButton, actionStyles.cancelButton]}
+                                onPress={onClose}
+                              >
+                                <Text style={actionStyles.modalButtonText}>Cancel</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[actionStyles.modalButton, actionStyles.saveButton]}
+                                onPress={handleSave}
+                              >
+                                <Text style={actionStyles.modalButtonText}>Save</Text>
+                              </TouchableOpacity>
+                            </>
+                          )}
                         </>
                       )}
                     </View>

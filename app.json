@@ -7,17 +7,30 @@
     "icon": "./assets/icon.png",
     "scheme": "echonotes",
     "userInterfaceStyle": "automatic",
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#000000"
+    },
+    "androidNavigationBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.echonotes.app",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent"
+      }
+    },
     "splash": {
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#544e4e"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.echonotes.app",
-      "buildNumber": "1.0.0"
-    },
+
     "android": {
       "versionCode": 1,
       "adaptiveIcon": {

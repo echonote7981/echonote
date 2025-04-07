@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, Text, RefreshControl, SafeAreaView, ActivityIndicator, TouchableOpacity, Alert, Modal, ScrollView, Pressable } from 'react-native';
+import { View, FlatList, Text, RefreshControl, SafeAreaView, ActivityIndicator, TouchableOpacity, Alert, Modal, ScrollView, Pressable, AppState, AppStateStatus } from 'react-native';
+import ActionDetailsModal from '../components/ActionDetailsModal';
 import { meetingsApi, actionsApi, ArchivedMeeting, Action } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import dateUtils from '../utils/dateUtils';
@@ -24,6 +25,7 @@ export default function ArchivedScreen() {
   const [expandedMeeting, setExpandedMeeting] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [selectedMeeting, setSelectedMeeting] = useState<ArchivedMeeting | null>(null);
+  const [selectedAction, setSelectedAction] = useState<Action | null>(null);
   const [meetingHighlights, setMeetingHighlights] = useState<string[]>([]);
   const [transcriptModalVisible, setTranscriptModalVisible] = useState(false);
   const [highlightsModalVisible, setHighlightsModalVisible] = useState(false);
@@ -38,7 +40,29 @@ export default function ArchivedScreen() {
   });
 
   useEffect(() => {
+    // Initial data load
     loadData();
+    
+    // Create a focus detector without continuous polling
+    // We'll track the last time we loaded data instead
+    const lastLoadTime = Date.now();
+    
+    // Create a simpler mechanism to check if we need to refresh
+    const checkFocusState = () => {
+      // Only reload if it's been more than 30 seconds since last load
+      const now = Date.now();
+      if (now - lastLoadTime > 30000) { // 30 seconds
+        console.log('Archives refreshing after inactivity');
+        loadData();
+      }
+    };
+    
+    // Add app state change listener to detect when app comes to foreground
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        checkFocusState();
+      }
+    })
     
     // Check if we should run auto-cleanup
     const checkForAutoCleanup = async () => {
@@ -64,6 +88,11 @@ export default function ArchivedScreen() {
     };
     
     checkForAutoCleanup();
+    
+    // Clean up app state listener
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   const loadData = async () => {
@@ -184,9 +213,18 @@ export default function ArchivedScreen() {
   };
 
   const onRefresh = async () => {
+    console.log('Manual refresh triggered');
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    try {
+      // Force clear any cached data to ensure fresh fetch
+      await AsyncStorage.removeItem('archivedMeetingsCache');
+      await loadData();
+      console.log('Manual refresh completed');
+    } catch (error) {
+      console.error('Error during manual refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
   
   /**
@@ -394,6 +432,7 @@ export default function ArchivedScreen() {
       <TouchableOpacity
         style={globalStyles.itemCard}
         activeOpacity={0.7}
+        onPress={() => setSelectedAction(displayItem)}
       >
         <View style={globalStyles.itemContent}>
           <View style={globalStyles.itemHeader}>
@@ -489,8 +528,13 @@ export default function ArchivedScreen() {
       </View>
 
       {/* Info message about auto-cleanup */}
-      <View style={{ paddingHorizontal: 16, marginTop: -5, marginBottom: 8 }}>
-        <Text style={{ fontSize: 12, color: theme.colors.textSecondary, fontStyle: 'italic' }}>
+      <View style={{ paddingHorizontal: 16, marginTop: 5, marginBottom: 10, borderBottomWidth: 0 }}>
+        <Text style={{ 
+          fontSize: 12, 
+          color: theme.colors.textSecondary, 
+          fontStyle: 'italic',
+          textAlign: 'center' 
+        }}>
           {activeTab === 'meetings' 
             ? 'Meetings are automatically removed after 15 days' 
             : 'Completed tasks are automatically removed after 15 days'}
@@ -886,6 +930,17 @@ export default function ArchivedScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      {/* Archived Action Details Modal */}
+      {selectedAction && (
+        <ActionDetailsModal
+          visible={selectedAction !== null}
+          action={selectedAction}
+          onClose={() => setSelectedAction(null)}
+          // Pass read-only prop to indicate this is archived and should be read-only
+          readOnly={true}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       <Modal

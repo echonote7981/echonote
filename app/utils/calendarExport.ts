@@ -122,3 +122,7 @@ export const exportToExternalCalendar = async (action: Action, service: 'google'
     return false;
   }
 };
+// Added default export for expo-router compatibility
+export default function CalendarExportUtils() {
+  return null;
+}

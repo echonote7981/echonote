@@ -516,6 +516,32 @@ const globalStyles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
   },
+  // Subscription screen styles
+  upgradeContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  upgradeTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+    marginBottom: 24,
+  },
+  upgradeFeatures: {
+    width: '100%',
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  upgradeFeatureText: {
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    marginVertical: 8,
+  },
   upgradeButton: {
     backgroundColor: '#000',
     padding: 15,
@@ -526,6 +552,18 @@ const globalStyles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  upgradeRestoreButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    marginTop: 10,
+  },
+  upgradeRestoreText: {
+    color: theme.colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '500',
     textAlign: 'center',
   },
   cancelButtonText: {
